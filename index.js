@@ -1,11 +1,10 @@
-const express = require('express')
-const app = express()
-const port = 2903
+const morgan = require("morgan");
+require("dotenv").config();
+const app = require("./src/app");
+const PORT = process.env.PORT || 5000;
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+app.use(morgan("short"));
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
