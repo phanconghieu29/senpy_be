@@ -6,18 +6,20 @@ const config = {
   server: process.env.DB_HOST,
   database: process.env.DB_NAME,
   options: {
-      enableArithAbort: true,
-      trustServerCertificate: true,
+    enableArithAbort: true,
+    trustServerCertificate: true,
   },
 };
 
-async function connectDB() {
-  try {
-      await sql.connect(config);
-      console.log('Connected to MS SQL Database');
-  } catch (error) {
-      console.error('Database connection failed:', error);
-  }
-}
+const poolPromise = new sql.ConnectionPool(config)
+  .connect()
+  .then((pool) => {
+    console.log("Connected to MSSQL");
+    return pool;
+  })
+  .catch((err) => console.log("Database connection failed:", err));
 
-module.exports = { connectDB, sql };
+module.exports = {
+  sql,
+  poolPromise,
+};
