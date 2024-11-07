@@ -1,7 +1,39 @@
-const { poolPromise } = require("../config/db");
+const { sql, poolPromise } = require("../config/db");
 const bcrypt = require("bcrypt");
 const { createUser } = require("../models/User");
 const { createMentee } = require("../models/Mentee");
+
+const getMentees = async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request().query(`
+      SELECT 
+        u.user_id AS id,
+        u.name,
+        u.gender,
+        u.email,
+        u.phone,
+        u.facebook_link,
+        u.status,
+        m.id as menteeID,
+        m.major,
+        m.strengths,
+        m.weaknesses,
+        m.goals,
+        m.mentoring_expectations
+      FROM 
+        Users u
+      INNER JOIN 
+        Mentee m ON u.user_id = m.user_id
+      WHERE 
+        u.role = 'mentee'
+    `);
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách mentee:", error);
+    res.status(500).json({ message: "Không thể lấy danh sách mentee" });
+  }
+};
 
 const registerMentee = async (req, res) => {
   try {
@@ -35,7 +67,7 @@ const registerMentee = async (req, res) => {
       password: hashedPassword,
       role: "mentee",
       avatar: null,
-      status: "active",
+      status: "pending",
     });
 
     // Insert into Mentee table
@@ -56,4 +88,19 @@ const registerMentee = async (req, res) => {
   }
 };
 
-module.exports = { registerMentee };
+const approveMentee = async (req, res) => {
+  const menteeId = req.params.menteeId;
+  try {
+    const pool = await poolPromise;
+    await pool.request()
+      .input("menteeId", sql.Int, menteeId)
+      .query(`UPDATE Users SET status = 'active' WHERE user_id = @menteeId`);
+
+    res.status(200).json({ message: "Mentee approved successfully" });
+  } catch (error) {
+    console.error("Error approving mentee:", error);
+    res.status(500).json({ message: "Error approving mentee" });
+  }
+};
+
+module.exports = { registerMentee, getMentees, approveMentee };

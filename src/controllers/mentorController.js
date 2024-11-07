@@ -1,6 +1,5 @@
 const { sql, poolPromise} = require("../config/db");
 const bcrypt = require("bcrypt");
-const Mentor = require("../models/Mentor");
 const { createUser } = require("../models/User");
 const { createMentor } = require("../models/Mentor");
 
@@ -15,6 +14,8 @@ const getMentors = async (req, res) => {
         u.email,
         u.phone,
         u.facebook_link,
+        u.status,
+        m.id as mentorID,
         m.expertise,
         m.strengths,
         m.weaknesses,
@@ -26,7 +27,7 @@ const getMentors = async (req, res) => {
       INNER JOIN 
         Mentor m ON u.user_id = m.user_id
       WHERE 
-        u.role = 'mentor' AND u.status = 'active'
+        u.role = 'mentor'
     `);
     res.json(result.recordset);
   } catch (error) {
@@ -34,50 +35,6 @@ const getMentors = async (req, res) => {
     res.status(500).json({ message: "Không thể lấy danh sách mentor" });
   }
 };
-
-// const createMentor = (req, res) => {
-//   const {
-//     user_id,
-//     expertise,
-//     strengths,
-//     weaknesses,
-//     goals,
-//     mentoring_expectations,
-//     reason_for_mentoring,
-//   } = req.body;
-//   const mentor = new Mentor(
-//     user_id,
-//     expertise,
-//     strengths,
-//     weaknesses,
-//     goals,
-//     mentoring_expectations,
-//     reason_for_mentoring
-//   );
-
-//   const query = `INSERT INTO Mentor (user_id, expertise, strengths, weaknesses, goals, mentoring_expectations, reason_for_mentoring) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-
-//   db.query(
-//     query,
-//     [
-//       mentor.user_id,
-//       mentor.expertise,
-//       mentor.strengths,
-//       mentor.weaknesses,
-//       mentor.goals,
-//       mentor.mentoring_expectations,
-//       mentor.reason_for_mentoring,
-//     ],
-//     (err) => {
-//       if (err) {
-//         return res
-//           .status(500)
-//           .json({ message: "Có lỗi xảy ra khi thêm mentor", error: err });
-//       }
-//       res.status(201).json({ message: "Thêm mentor thành công" });
-//     }
-//   );
-// };
 
 const registerMentor = async (req, res) => {
   try {
@@ -154,4 +111,19 @@ const addConnection = async (req, res) => {
   }
 };
 
-module.exports = { getMentors, registerMentor, addConnection };
+const approveMentor = async (req, res) => {
+  const mentorId = req.params.mentorId;
+  try {
+    const pool = await poolPromise;
+    await pool.request()
+      .input("mentorId", sql.Int, mentorId)
+      .query(`UPDATE Users SET status = 'active' WHERE user_id = @mentorId`);
+
+    res.status(200).json({ message: "Mentor approved successfully" });
+  } catch (error) {
+    console.error("Error approving mentor:", error);
+    res.status(500).json({ message: "Error approving mentor" });
+  }
+};
+
+module.exports = { getMentors, registerMentor, addConnection, approveMentor };
