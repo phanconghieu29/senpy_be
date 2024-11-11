@@ -1,4 +1,4 @@
-const { sql, poolPromise} = require("../config/db");
+const { sql, poolPromise } = require("../config/db");
 const bcrypt = require("bcrypt");
 const { createUser } = require("../models/User");
 const { createMentor } = require("../models/Mentor");
@@ -68,7 +68,7 @@ const registerMentor = async (req, res) => {
       password: hashedPassword,
       role: "mentor",
       avatar: null,
-      status: "active",
+      status: "pending",
     });
 
     // Insert into Mentor table
@@ -90,24 +90,80 @@ const registerMentor = async (req, res) => {
 };
 
 const addConnection = async (req, res) => {
+  const { mentee_id, mentor_id, introduction } = req.body;
+
   try {
-    const { mentee_id, mentor_id, introduction } = req.body;
+    const pool = await poolPromise; // Kết nối tới database
 
-    const pool = await poolPromise;
-    await pool.request()
-      .input('mentee_id', sql.Int, mentee_id)
-      .input('mentor_id', sql.Int, mentor_id)
-      .input('introduction', sql.NVarChar, introduction)
-      .input('status', sql.NVarChar, 'pending')
-      .query(`
-        INSERT INTO MentorConnections (mentee_id, mentor_id, introduction, status)
-        VALUES (@mentee_id, @mentor_id, @introduction, @status)
-      `);
+    // Bước 1: Kiểm tra xem mentee đã gửi yêu cầu tới mentor này chưa
+    const existingConnection = await pool
+      .request()
+      .input("mentee_id", sql.Int, mentee_id)
+      .input("mentor_id", sql.Int, mentor_id).query(`
+              SELECT COUNT(*) AS connectionExists 
+              FROM MentorConnections 
+              WHERE mentee_id = @mentee_id 
+                AND mentor_id = @mentor_id
+          `);
 
-    res.status(201).json({ message: 'Connection request sent successfully' });
+    if (existingConnection.recordset[0].connectionExists > 0) {
+      // Nếu đã có kết nối, trả về thông báo
+      return res.status(400).json({
+        message: "Bạn đã yêu cầu kết nối với mentor này rồi",
+      });
+    }
+
+    //Kiểm tra xem mentor đã có người kết nối chưa
+    const mentorConnectionCheck = await pool
+      .request()
+      .input("mentor_id", sql.Int, mentor_id).query(`
+              SELECT COUNT(*) AS mentorHasConnection
+              FROM MentorConnections 
+              WHERE mentor_id = @mentor_id 
+                AND status = 'connected'
+          `);
+
+    if (mentorConnectionCheck.recordset[0].mentorHasConnection > 0) {
+      // Nếu mentor đã có người kết nối, trả về thông báo
+      return res.status(400).json({
+        message: "Mentor này đã có người kết nối, bạn không thể gửi yêu cầu nữa.",
+      });
+    }
+
+    // Bước 2: Kiểm tra số lượng yêu cầu `pending` hiện tại của mentee
+    const checkRequestCount = await pool
+      .request()
+      .input("mentee_id", sql.Int, mentee_id).query(`
+              SELECT COUNT(*) AS requestCount 
+              FROM MentorConnections 
+              WHERE mentee_id = @mentee_id AND status = 'pending'
+          `);
+
+    const requestCount = checkRequestCount.recordset[0].requestCount;
+
+    // Nếu đã đủ 3 yêu cầu `pending`, trả về lỗi
+    if (requestCount >= 3) {
+      return res.status(400).json({
+        message: "Bạn chỉ được phép gửi tối đa 3 yêu cầu kết nối.",
+      });
+    }
+
+    // Bước 3: Nếu chưa đạt giới hạn và chưa có yêu cầu trùng lặp, thêm yêu cầu mới vào MentorConnections
+    await pool
+      .request()
+      .input("mentee_id", sql.Int, mentee_id)
+      .input("mentor_id", sql.Int, mentor_id)
+      .input("introduction", sql.NVarChar, introduction).query(`
+              INSERT INTO MentorConnections (mentee_id, mentor_id, introduction, status, request_date)
+              VALUES (@mentee_id, @mentor_id, @introduction, 'pending', GETDATE())
+          `);
+
+    res
+      .status(201)
+      .json({ message: "Yêu cầu kết nối đã được gửi thành công." });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Đã xảy ra lỗi khi gửi yêu cầu kết nối." });
   }
 };
 
@@ -115,7 +171,8 @@ const approveMentor = async (req, res) => {
   const mentorId = req.params.mentorId;
   try {
     const pool = await poolPromise;
-    await pool.request()
+    await pool
+      .request()
       .input("mentorId", sql.Int, mentorId)
       .query(`UPDATE Users SET status = 'active' WHERE user_id = @mentorId`);
 
@@ -126,4 +183,35 @@ const approveMentor = async (req, res) => {
   }
 };
 
-module.exports = { getMentors, registerMentor, addConnection, approveMentor };
+const rejectMentor = async (req, res) => {
+  const mentorId = req.params.mentorId;
+
+  try {
+    const pool = await poolPromise;
+
+    // Delete mentor-specific data from the Mentor table
+    await pool
+      .request()
+      .input("mentorId", sql.Int, mentorId)
+      .query(`DELETE FROM Mentor WHERE user_id = @mentorId`);
+
+    // Delete user data from the Users table
+    await pool
+      .request()
+      .input("mentorId", sql.Int, mentorId)
+      .query(`DELETE FROM Users WHERE user_id = @mentorId`);
+
+    res.status(200).json({ message: "Mentor rejected and data removed." });
+  } catch (error) {
+    console.error("Error rejecting mentor:", error);
+    res.status(500).json({ message: "Error rejecting mentor." });
+  }
+};
+
+module.exports = {
+  getMentors,
+  registerMentor,
+  addConnection,
+  approveMentor,
+  rejectMentor,
+};

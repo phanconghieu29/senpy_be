@@ -103,4 +103,29 @@ const approveMentee = async (req, res) => {
   }
 };
 
-module.exports = { registerMentee, getMentees, approveMentee };
+const rejectMentee = async (req, res) => {
+  const menteeId = req.params.menteeId;
+
+  try {
+    const pool = await poolPromise;
+
+    // Delete mentee-specific data from the Mentee table
+    await pool
+      .request()
+      .input("menteeId", sql.Int, menteeId)
+      .query(`DELETE FROM Mentee WHERE user_id = @menteeId`);
+
+    // Delete user data from the Users table
+    await pool
+      .request()
+      .input("menteeId", sql.Int, menteeId)
+      .query(`DELETE FROM Users WHERE user_id = @menteeId`);
+
+    res.status(200).json({ message: "Mentee rejected and data removed." });
+  } catch (error) {
+    console.error("Error rejecting mentee:", error);
+    res.status(500).json({ message: "Error rejecting mentee." });
+  }
+};
+
+module.exports = { registerMentee, getMentees, approveMentee, rejectMentee };
