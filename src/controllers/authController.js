@@ -29,7 +29,7 @@ async function loginUser(req, res) {
     if (user.status !== "active") {
       return res
         .status(403)
-        .json({ message: "Tài khoản của bạn không còn hoạt động" });
+        .json({ message: "Tài khoản của bạn không hoạt động" });
     }
 
     // Lấy thêm thông tin dựa trên vai trò của người dùng
@@ -87,4 +87,44 @@ async function loginUser(req, res) {
   }
 }
 
-module.exports = { loginUser };
+async function changePassword(req, res) {
+  const userId = req.user.id;
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    const pool = await poolPromise;
+    const result = await pool
+      .request()
+      .input("userId", sql.Int, userId)
+      .query("SELECT password FROM Users WHERE user_id = @userId");
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ message: "Không tìm thấy người dùng." });
+    }
+
+    const user = result.recordset[0];
+
+    // Kiểm tra mật khẩu hiện tại
+    const passwordMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!passwordMatch) {
+      return res.status(400).json({ message: "Mật khẩu hiện tại không đúng." });
+    }
+
+    // Hash mật khẩu mới
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Cập nhật mật khẩu mới
+    await pool
+      .request()
+      .input("userId", sql.Int, userId)
+      .input("newPassword", sql.VarChar, hashedPassword)
+      .query("UPDATE Users SET password = @newPassword WHERE user_id = @userId");
+
+    return res.json({ message: "Đổi mật khẩu thành công!" });
+  } catch (error) {
+    console.error("Đổi mật khẩu thất bại:", error);
+    res.status(500).json({ message: "Có lỗi xảy ra. Vui lòng thử lại sau." });
+  }
+}
+
+module.exports = { loginUser, changePassword };

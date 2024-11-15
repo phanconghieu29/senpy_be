@@ -113,6 +113,23 @@ const addConnection = async (req, res) => {
       });
     }
 
+    const menteeConnectedCheck = await pool
+      .request()
+      .input("mentee_id", sql.Int, mentee_id)
+      .query(`
+        SELECT COUNT(*) AS menteeHasConnection 
+        FROM MentorConnections 
+        WHERE mentee_id = @mentee_id 
+          AND status = 'connected'
+      `);
+
+    if (menteeConnectedCheck.recordset[0].menteeHasConnection > 0) {
+      // If the mentee already has an active connection, return a message
+      return res.status(400).json({
+        message: "Bạn đã có mentor rồi.",
+      });
+    }
+
     //Kiểm tra xem mentor đã có người kết nối chưa
     const mentorConnectionCheck = await pool
       .request()

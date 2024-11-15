@@ -87,7 +87,7 @@ class MentorConnectionController {
     try {
       const success = await MentorConnection.approveConnection(mentorId, menteeId);
       if (success) {
-        res.status(200).send('Connection approved and other requests cancelled');
+        res.status(200).send('Connection approved');
       } else {
         res.status(404).send('Connection not found');
       }
