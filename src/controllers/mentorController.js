@@ -68,7 +68,7 @@ const registerMentor = async (req, res) => {
       password: hashedPassword,
       role: "mentor",
       avatar: null,
-      status: "pending",
+      status: "Chờ duyệt",
     });
 
     // Insert into Mentor table
@@ -104,12 +104,13 @@ const addConnection = async (req, res) => {
               FROM MentorConnections 
               WHERE mentee_id = @mentee_id 
                 AND mentor_id = @mentor_id
+                AND status IN (N'Chờ mentor', N'Chờ BĐH')
           `);
 
     if (existingConnection.recordset[0].connectionExists > 0) {
       // Nếu đã có kết nối, trả về thông báo
       return res.status(400).json({
-        message: "Bạn đã yêu cầu kết nối với mentor này rồi",
+        message: "Bạn đã có yêu cầu kết nối với mentor này đang chờ xử lý",
       });
     }
 
@@ -120,7 +121,7 @@ const addConnection = async (req, res) => {
         SELECT COUNT(*) AS menteeHasConnection 
         FROM MentorConnections 
         WHERE mentee_id = @mentee_id 
-          AND status = 'connected'
+          AND status = N'Đã kết nối'
       `);
 
     if (menteeConnectedCheck.recordset[0].menteeHasConnection > 0) {
@@ -137,7 +138,7 @@ const addConnection = async (req, res) => {
               SELECT COUNT(*) AS mentorHasConnection
               FROM MentorConnections 
               WHERE mentor_id = @mentor_id 
-                AND status = 'connected'
+                AND status = N'Đã kết nối'
           `);
 
     if (mentorConnectionCheck.recordset[0].mentorHasConnection > 0) {
@@ -153,7 +154,7 @@ const addConnection = async (req, res) => {
       .input("mentee_id", sql.Int, mentee_id).query(`
               SELECT COUNT(*) AS requestCount 
               FROM MentorConnections 
-              WHERE mentee_id = @mentee_id AND status = 'pending'
+              WHERE mentee_id = @mentee_id AND status = N'Chờ mentor'
           `);
 
     const requestCount = checkRequestCount.recordset[0].requestCount;
@@ -172,7 +173,7 @@ const addConnection = async (req, res) => {
       .input("mentor_id", sql.Int, mentor_id)
       .input("introduction", sql.NVarChar, introduction).query(`
               INSERT INTO MentorConnections (mentee_id, mentor_id, introduction, status, request_date)
-              VALUES (@mentee_id, @mentor_id, @introduction, 'pending', GETDATE())
+              VALUES (@mentee_id, @mentor_id, @introduction, N'Chờ mentor', GETDATE())
           `);
 
     res
@@ -191,12 +192,12 @@ const approveMentor = async (req, res) => {
     await pool
       .request()
       .input("mentorId", sql.Int, mentorId)
-      .query(`UPDATE Users SET status = 'active' WHERE user_id = @mentorId`);
+      .query(`UPDATE Users SET status = N'Đã kích hoạt' WHERE user_id = @mentorId`);
 
-    res.status(200).json({ message: "Mentor approved successfully" });
+    res.status(200).json({ message: "Phê duyệt mentor thành công" });
   } catch (error) {
-    console.error("Error approving mentor:", error);
-    res.status(500).json({ message: "Error approving mentor" });
+    console.error("Lỗi khi phê duyệt mentor:", error);
+    res.status(500).json({ message: "Lỗi khi phê duyệt mentor" });
   }
 };
 
@@ -218,10 +219,10 @@ const rejectMentor = async (req, res) => {
       .input("mentorId", sql.Int, mentorId)
       .query(`DELETE FROM Users WHERE user_id = @mentorId`);
 
-    res.status(200).json({ message: "Mentor rejected and data removed." });
+    res.status(200).json({ message: "Đã từ chối mentor thành công." });
   } catch (error) {
-    console.error("Error rejecting mentor:", error);
-    res.status(500).json({ message: "Error rejecting mentor." });
+    console.error("Lỗi từ chối mentor:", error);
+    res.status(500).json({ message: "Lỗi từ chối mentor." });
   }
 };
 

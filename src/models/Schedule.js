@@ -7,7 +7,7 @@ const getSchedules = async () => {
     const result = await pool.request().query("SELECT * FROM Schedules"); // Thay 'Schedule' bằng tên bảng thực tế của bạn
     return result.recordset; // Trả về kết quả dưới dạng mảng
   } catch (err) {
-    console.error("Error fetching schedules:", err);
+    console.error("Lỗi khi tải lịch trình:", err);
     throw err;
   }
 };
@@ -32,7 +32,7 @@ const getSchedulesByRole = async (role, torteeId) => {
 
     return result.recordset; // Return the filtered schedules as an array
   } catch (err) {
-    console.error("Error fetching schedules by role:", err);
+    console.error("Lỗi khi tìm lịch trình theo vai trò:", err);
     throw err;
   }
 };
@@ -47,16 +47,22 @@ const addSchedule = async (schedule) => {
     const mentorQuery = await pool
       .request()
       .input("mentee_id", sql.Int, mentee_id)
-      .input("status", sql.NVarChar(20), "connected").query(`
+      .input("status", sql.NVarChar(20), "Đã kết nối")
+      .query(`
         SELECT mentor_id 
         FROM MentorConnections 
         WHERE mentee_id = @mentee_id AND status = @status
       `);
 
+    console.log("mentee_id:", mentee_id);
+    console.log("status:", "Đã kết nối");
+
     const mentor_id = mentorQuery.recordset[0]?.mentor_id;
 
     if (!mentor_id) {
-      throw new Error("No approved connection found for the given mentee.");
+      throw new Error(
+        "Không tìm thấy kết nối được chấp thuận cho người được cố vấn đã cho."
+      );
     }
 
     // Insert the schedule with the retrieved mentor_id
@@ -74,7 +80,7 @@ const addSchedule = async (schedule) => {
 
     return result.rowsAffected > 0;
   } catch (err) {
-    console.error("Error adding schedule:", err);
+    console.error("Lỗi đặt lịch:", err);
     throw err;
   }
 };
@@ -96,11 +102,13 @@ const updateStatus = async (scheduleId, status) => {
       .request()
       .input("schedule_id", sql.Int, scheduleId)
       .input("status", sql.NVarChar(20), status)
-      .query("UPDATE Schedules SET status = @status WHERE schedule_id = @schedule_id");
+      .query(
+        "UPDATE Schedules SET status = @status WHERE schedule_id = @schedule_id"
+      );
 
     return result.rowsAffected > 0;
   } catch (err) {
-    console.error("Error updating schedule status:", err);
+    console.error("Lỗi cập nhật trạng thái lịch:", err);
     throw err;
   }
 };
@@ -115,7 +123,7 @@ const deleteSchedule = async (scheduleId) => {
 
     return result.rowsAffected > 0;
   } catch (err) {
-    console.error("Error deleting schedule:", err);
+    console.error("Lỗi xóa lịch:", err);
     throw err;
   }
 };

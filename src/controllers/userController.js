@@ -1,6 +1,6 @@
 const { sql, poolPromise } = require("../config/db");
 const bcrypt = require("bcrypt");
-const { createUser } = require("../models/User");
+const { User, createUser } = require("../models/User");
 
 const getUsers = async (req, res) => {
   try {
@@ -40,12 +40,28 @@ const registerUser = async (req, res) => {
 
     res.status(200).json({ message: "Đăng ký người dùng thành công!" });
   } catch (error) {
-    console.error("Error registering user:", error);
+    console.error("Lỗi khi đăng ký người dùng:", error);
     res.status(500).json({ message: "Đăng ký không thành công." });
+  }
+};
+
+const getUserById = async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: "ID người dùng không hợp lệ" });
+    }
+
+    const user = await User.getUserById(userId);
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Lỗi khi lấy thông tin người dùng:", error);
+    res.status(500).json({ error: error.message });
   }
 };
 
 module.exports = {
   registerUser,
-  getUsers
+  getUsers,
+  getUserById,
 };

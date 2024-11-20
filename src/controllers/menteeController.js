@@ -67,7 +67,7 @@ const registerMentee = async (req, res) => {
       password: hashedPassword,
       role: "mentee",
       avatar: null,
-      status: "pending",
+      status: "Chờ duyệt",
     });
 
     // Insert into Mentee table
@@ -94,7 +94,7 @@ const approveMentee = async (req, res) => {
     const pool = await poolPromise;
     await pool.request()
       .input("menteeId", sql.Int, menteeId)
-      .query(`UPDATE Users SET status = 'active' WHERE user_id = @menteeId`);
+      .query(`UPDATE Users SET status = N'Đã kích hoạt' WHERE user_id = @menteeId`);
 
     res.status(200).json({ message: "Mentee approved successfully" });
   } catch (error) {

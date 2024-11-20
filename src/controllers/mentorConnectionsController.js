@@ -1,4 +1,4 @@
-const MentorConnection = require('../models/mentorConnections');
+const MentorConnection = require("../models/mentorConnections");
 
 // Controller cho các yêu cầu kết nối của mentee
 class MentorConnectionController {
@@ -10,7 +10,7 @@ class MentorConnectionController {
       res.status(200).json(requests);
     } catch (error) {
       console.error(error);
-      res.status(500).send('Internal Server Error');
+      res.status(500).send("Lỗi máy chủ");
     }
   }
 
@@ -20,13 +20,13 @@ class MentorConnectionController {
     try {
       const success = await MentorConnection.cancelRequest(connectionId);
       if (success) {
-        res.status(200).send('Request cancelled');
+        res.status(200).send("Yêu cầu đã bị hủy");
       } else {
-        res.status(404).send('Request not found');
+        res.status(404).send("Không tìm thấy yêu cầu");
       }
     } catch (error) {
       console.error(error);
-      res.status(500).send('Internal Server Error');
+      res.status(500).send("Lỗi máy chủ");
     }
   }
 
@@ -38,7 +38,7 @@ class MentorConnectionController {
       res.status(200).json(requests);
     } catch (error) {
       console.error(error);
-      res.status(500).send('Internal Server Error');
+      res.status(500).send("Lỗi máy chủ");
     }
   }
 
@@ -48,24 +48,33 @@ class MentorConnectionController {
     const { action } = req.body; // action có thể là 'approve' hoặc 'reject'
     let status;
 
-    if (action === 'approve') {
-      status = 'awaiting_admin'; // Trạng thái chờ admin duyệt
-    } else if (action === 'reject') {
-      status = 'rejected';
+    if (action === "approve") {
+      status = "Chờ BĐH"; // Trạng thái chờ admin duyệt
+    } else if (action === "reject") {
+      status = "Từ chối bởi Mentor";
+    } else if (action === "cancel") {
+      status = "Mentee hủy yêu cầu";
+    } else if (action === "admin_approve") {
+      status = "Đã kết nối";
+    } else if (action === "admin_reject") {
+      status = "Từ chối bởi BĐH";
     } else {
-      return res.status(400).send('Invalid action');
+      return res.status(400).send("Invalid action");
     }
 
     try {
-      const success = await MentorConnection.updateRequestStatus(connectionId, status);
+      const success = await MentorConnection.updateRequestStatus(
+        connectionId,
+        status
+      );
       if (success) {
-        res.status(200).send('Request updated');
+        res.status(200).send("Request updated");
       } else {
-        res.status(404).send('Request not found');
+        res.status(404).send("Request not found");
       }
     } catch (error) {
       console.error(error);
-      res.status(500).send('Internal Server Error');
+      res.status(500).send("Lỗi máy chủ");
     }
   }
 
@@ -76,55 +85,62 @@ class MentorConnectionController {
       res.status(200).json(requests);
     } catch (error) {
       console.error(error);
-      res.status(500).send('Internal Server Error');
+      res.status(500).send("Lỗi máy chủ");
     }
   }
 
-
   // Admin duyệt kết nối và hủy các yêu cầu khác
   static async approveConnection(req, res) {
-    const { mentorId, menteeId } = req.body;
+    const { connectionId, mentorId, menteeId } = req.body;
     try {
-      const success = await MentorConnection.approveConnection(mentorId, menteeId);
+      const success = await MentorConnection.approveConnection(
+        connectionId,
+        mentorId,
+        menteeId
+      );
       if (success) {
-        res.status(200).send('Connection approved');
+        res.status(200).send("Connection approved");
       } else {
-        res.status(404).send('Connection not found');
+        res.status(404).send("Connection not found");
       }
     } catch (error) {
       console.error(error);
-      res.status(500).send('Internal Server Error');
+      res.status(500).send("Lỗi máy chủ");
     }
   }
 
   // Phương thức mới để lấy yêu cầu và kiểm tra kết nối
   static async getMenteeStatus(req, res) {
     const menteeId = req.user.torteeId; // Lấy mentee_id từ JWT token
-    
+
     try {
       // Lấy thông tin yêu cầu kết nối của mentee
       const requests = await MentorConnection.getMenteeRequests(menteeId);
-      
+
       // Kiểm tra nếu có kết nối với mentor
-      const activeConnection = requests.find(request => request.status === 'connected');
-      
+      const activeConnection = requests.find(
+        (request) => request.status === "Đã kết nối"
+      );
+
       if (activeConnection) {
         // Nếu có kết nối, trả về thông tin của mentor
-        const mentor = await MentorConnection.getMentorInfo(activeConnection.mentor_id);
+        const mentor = await MentorConnection.getMentorInfo(
+          activeConnection.mentor_id
+        );
         return res.status(200).json({
-          connectionStatus: 'connected',
+          connectionStatus: "connected",
           mentor: mentor,
         });
       } else {
         // Nếu không có kết nối, trả về danh sách các yêu cầu
         return res.status(200).json({
-          connectionStatus: 'not_connected',
+          connectionStatus: "not_connected",
           requests: requests,
         });
       }
     } catch (error) {
       console.error(error);
-      res.status(500).send('Internal Server Error');
+      res.status(500).send("Lỗi máy chủ");
     }
   }
 
@@ -135,27 +151,31 @@ class MentorConnectionController {
     try {
       // Lấy yêu cầu kết nối của Mentor
       const requests = await MentorConnection.getMentorRequests(mentorId);
-      
+
       // Kiểm tra nếu có kết nối với mentee
-      const activeConnection = requests.find(request => request.status === 'connected');
-      
+      const activeConnection = requests.find(
+        (request) => request.status === "Đã kết nối"
+      );
+
       if (activeConnection) {
         // Nếu có kết nối, trả về thông tin của mentee
-        const mentee = await MentorConnection.getMenteeInfo(activeConnection.mentee_id);
+        const mentee = await MentorConnection.getMenteeInfo(
+          activeConnection.mentee_id
+        );
         return res.status(200).json({
-          connectionStatus: 'connected',
+          connectionStatus: "connected",
           mentee: mentee,
         });
       } else {
         // Nếu không có kết nối, trả về danh sách các yêu cầu kết nối
         return res.status(200).json({
-          connectionStatus: 'not_connected',
+          connectionStatus: "not_connected",
           requests: requests,
         });
       }
     } catch (error) {
       console.error(error);
-      res.status(500).send('Internal Server Error');
+      res.status(500).send("Lỗi máy chủ");
     }
   }
 }

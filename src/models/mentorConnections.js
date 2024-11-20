@@ -2,21 +2,6 @@ const { poolPromise, sql } = require("../config/db");
 
 // Model xử lý các yêu cầu kết nối của mentor và mentee
 class MentorConnection {
-  // Lấy tất cả yêu cầu kết nối của mentee
-  // static async getMenteeRequests(menteeId) {
-  //   try {
-  //     const pool = await poolPromise;
-  //     const result = await pool.request().input("mentee_id", sql.Int, menteeId)
-  //       .query(`
-  //         SELECT * FROM MentorConnections
-  //         WHERE mentee_id = @mentee_id
-  //         ORDER BY request_date DESC
-  //       `);
-  //     return result.recordset;
-  //   } catch (error) {
-  //     throw new Error("Error fetching mentee requests: " + error.message);
-  //   }
-  // }
   static async getMenteeRequests(menteeId) {
     try {
       const pool = await poolPromise;
@@ -37,29 +22,19 @@ class MentorConnection {
           INNER JOIN Users mentee_user ON mentee.user_id = mentee_user.user_id
           INNER JOIN Users mentor_user ON mentor.user_id = mentor_user.user_id
           WHERE mc.mentee_id = @mentee_id
-          ORDER BY mc.request_date DESC
+          ORDER BY 
+            CASE 
+              WHEN mc.status = N'Chờ mentor' THEN 1
+              WHEN mc.status = N'Chờ BĐH' THEN 2
+              ELSE 3
+            END,
+            mc.request_date DESC
         `);
       return result.recordset;
     } catch (error) {
-      throw new Error("Error fetching mentee requests: " + error.message);
+      throw new Error("Lỗi khi tìm kiếm yêu cầu của mentee: " + error.message);
     }
   }
-
-  // Lấy tất cả yêu cầu kết nối của mentor
-  // static async getMentorRequests(mentorId) {
-  //   try {
-  //     const pool = await poolPromise;
-  //     const result = await pool.request().input("mentor_id", sql.Int, mentorId)
-  //       .query(`
-  //         SELECT * FROM MentorConnections
-  //         WHERE mentor_id = @mentor_id AND (status = 'pending' OR status = 'connected')
-  //         ORDER BY request_date DESC
-  //       `);
-  //     return result.recordset;
-  //   } catch (error) {
-  //     throw new Error("Error fetching mentor requests: " + error.message);
-  //   }
-  // }
 
   static async getMentorRequests(mentorId) {
     try {
@@ -80,14 +55,21 @@ class MentorConnection {
           INNER JOIN Mentor mentor ON mc.mentor_id = mentor.id
           INNER JOIN Users mentee_user ON mentee.user_id = mentee_user.user_id
           INNER JOIN Users mentor_user ON mentor.user_id = mentor_user.user_id
-          WHERE mc.mentor_id = @mentor_id AND (mc.status = 'pending' OR mc.status = 'connected')
-          ORDER BY mc.request_date DESC
+          WHERE mc.mentor_id = @mentor_id
+          ORDER BY 
+            CASE 
+              WHEN mc.status = N'Chờ mentor' THEN 1
+              WHEN mc.status = N'Chờ BĐH' THEN 2
+              ELSE 3
+            END,
+            mc.request_date DESC
         `);
       return result.recordset;
     } catch (error) {
-      throw new Error("Error fetching mentor requests: " + error.message);
+      throw new Error("Lỗi khi tìm kiếm yêu cầu của mentor: " + error.message);
     }
   }
+  
 
   // Hủy yêu cầu kết nối của mentee
   static async cancelRequest(connectionId) {
@@ -101,7 +83,7 @@ class MentorConnection {
         );
       return result.rowsAffected[0] > 0;
     } catch (error) {
-      throw new Error("Error canceling request: " + error.message);
+      throw new Error("Lỗi khi hủy yêu cầu: " + error.message);
     }
   }
 
@@ -119,7 +101,9 @@ class MentorConnection {
         `);
       return result.rowsAffected[0] > 0;
     } catch (error) {
-      throw new Error("Error updating request status: " + error.message);
+      throw new Error(
+        "Lỗi khi cập nhật trạng thái yêu cầu kết nối: " + error.message
+      );
     }
   }
 
@@ -143,34 +127,40 @@ class MentorConnection {
         INNER JOIN Mentor mentor ON mc.mentor_id = mentor.id
         INNER JOIN Users mentee_user ON mentee.user_id = mentee_user.user_id
         INNER JOIN Users mentor_user ON mentor.user_id = mentor_user.user_id
-        WHERE mc.status = 'awaiting_admin' OR mc.status = 'connected'
-        ORDER BY mc.request_date DESC
+        WHERE mc.status IN (N'Chờ BĐH', N'Đã kết nối', N'Từ chối bởi BĐH')
+        ORDER BY 
+          CASE 
+            WHEN mc.status = N'Chờ BĐH' THEN 1
+            WHEN mc.status = N'Đã kết nối' THEN 2
+            ELSE 3
+          END,
+          mc.request_date DESC
       `);
       return result.recordset;
     } catch (error) {
       throw new Error(
-        "Error fetching approved requests for admin: " + error.message
+        "Lỗi khi tìm kiếm yêu cầu đã được chấp thuận cho quản trị viên: " +
+          error.message
       );
     }
   }
 
   // Admin duyệt kết nối và hủy các yêu cầu khác của mentor và mentee
-  static async approveConnection(mentorId, menteeId) {
+  static async approveConnection(connectionId, mentorId, menteeId) {
     try {
       const pool = await poolPromise;
 
       // Cập nhật trạng thái kết nối
       const updateResult = await pool
         .request()
-        .input("mentor_id", sql.Int, mentorId)
-        .input("mentee_id", sql.Int, menteeId).query(`
-        UPDATE MentorConnections
-        SET status = 'connected'
-        WHERE mentor_id = @mentor_id AND mentee_id = @mentee_id
+        .input("connection_id", sql.Int, connectionId).query(`
+        UPDATE MentorConnections 
+        SET status = N'Đã kết nối' 
+        WHERE connection_id = @connection_id
       `);
 
       if (updateResult.rowsAffected[0] === 0) {
-        throw new Error("No connection found to update");
+        throw new Error("Không tìm thấy kết nối để cập nhật");
       }
 
       // Kiểm tra có yêu cầu kết nối pending nào không trước khi hủy
@@ -181,7 +171,7 @@ class MentorConnection {
         SELECT COUNT(*) AS pendingCount
         FROM MentorConnections
         WHERE (mentor_id = @mentor_id OR mentee_id = @mentee_id)
-        AND status = 'pending'
+        AND status = N'Chờ BĐH'
         AND NOT (mentor_id = @mentor_id AND mentee_id = @mentee_id)
       `);
 
@@ -194,14 +184,14 @@ class MentorConnection {
           .input("mentor_id", sql.Int, mentorId)
           .input("mentee_id", sql.Int, menteeId).query(`
           UPDATE MentorConnections
-          SET status = 'rejected'
+          SET status = N'Từ chối bởi BĐH'
           WHERE (mentor_id = @mentor_id OR mentee_id = @mentee_id)
-          AND status = 'pending'
+          AND status IN (N'Chờ mentor', N'Chờ BĐH')
           AND NOT (mentor_id = @mentor_id AND mentee_id = @mentee_id)
         `);
 
         if (deleteResult.rowsAffected[0] === 0) {
-          throw new Error("No pending connections found to delete");
+          throw new Error("Không tìm thấy kết nối đang chờ để xóa");
         }
       }
 
@@ -209,30 +199,15 @@ class MentorConnection {
       return true;
     } catch (error) {
       // Xử lý lỗi
-      console.error("Error approving connection:", error);
-      throw new Error("Error approving connection: " + error.message);
+      console.error("Lỗi khi chấp thuận kết nối:", error);
+      throw new Error("Lỗi khi chấp thuận kết nối: " + error.message);
     }
   }
-
-  // static async getMentorInfo(mentorId) {
-  //   try {
-  //     const pool = await poolPromise;
-  //     const result = await pool
-  //       .request()
-  //       .input("mentor_id", sql.Int, mentorId)
-  //       .query("SELECT * FROM Mentor WHERE id = @mentor_id");
-  //     return result.recordset[0]; // Trả về thông tin của mentor
-  //   } catch (error) {
-  //     throw new Error("Error fetching mentor info: " + error.message);
-  //   }
-  // }
 
   static async getMentorInfo(mentorId) {
     try {
       const pool = await poolPromise;
-      const result = await pool
-        .request()
-        .input("mentor_id", sql.Int, mentorId)
+      const result = await pool.request().input("mentor_id", sql.Int, mentorId)
         .query(`
           SELECT 
             mentor.id,
@@ -250,30 +225,14 @@ class MentorConnection {
         `);
       return result.recordset[0]; // Return mentor info with name
     } catch (error) {
-      throw new Error("Error fetching mentor info: " + error.message);
+      throw new Error("Lỗi khi tìm thông tin mentor: " + error.message);
     }
   }
-  
-
-  // static async getMenteeInfo(menteeId) {
-  //   try {
-  //     const pool = await poolPromise;
-  //     const result = await pool
-  //       .request()
-  //       .input("mentee_id", sql.Int, menteeId)
-  //       .query("SELECT * FROM Mentee WHERE id = @mentee_id");
-  //     return result.recordset[0]; // Trả về thông tin của mentor
-  //   } catch (error) {
-  //     throw new Error("Error fetching mentee info: " + error.message);
-  //   }
-  // }
 
   static async getMenteeInfo(menteeId) {
     try {
       const pool = await poolPromise;
-      const result = await pool
-        .request()
-        .input("mentee_id", sql.Int, menteeId)
+      const result = await pool.request().input("mentee_id", sql.Int, menteeId)
         .query(`
           SELECT 
             mentee.id,
@@ -291,7 +250,7 @@ class MentorConnection {
         `);
       return result.recordset[0]; // Return mentee info with name
     } catch (error) {
-      throw new Error("Error fetching mentee info: " + error.message);
+      throw new Error("Lỗi khi tìm thông tin mentee: " + error.message);
     }
   }
 }

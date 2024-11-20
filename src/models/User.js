@@ -26,6 +26,67 @@ class User {
       throw err;
     }
   }
+
+  static async getUserById(userId) {
+    try {
+      const pool = await poolPromise;
+      const result = await pool
+        .request()
+        .input("userId", sql.Int, userId)
+        .query(`
+          SELECT 
+            u.user_id,
+            u.name,
+            u.gender,
+            u.email,
+            u.phone,
+            u.facebook_link,
+            u.role,
+            u.avatar,
+            u.status,
+            u.created_at,
+            CASE 
+              WHEN u.role = 'mentor' THEN 
+                (SELECT JSON_QUERY((
+                  SELECT 
+                    m.expertise, 
+                    m.strengths, 
+                    m.weaknesses, 
+                    m.goals, 
+                    m.mentoring_expectations, 
+                    m.reason_for_mentoring
+                  FROM Mentor m 
+                  WHERE m.user_id = u.user_id
+                  FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+                )))
+              WHEN u.role = 'mentee' THEN 
+                (SELECT JSON_QUERY((
+                  SELECT 
+                    me.year_in_school, 
+                    me.major, 
+                    me.strengths, 
+                    me.weaknesses, 
+                    me.goals, 
+                    me.mentoring_expectations
+                  FROM Mentee me 
+                  WHERE me.user_id = u.user_id
+                  FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+                )))
+              ELSE NULL
+            END AS role_details
+          FROM Users u
+          WHERE u.user_id = @userId
+        `);
+      
+      if (result.recordset.length === 0) {
+        throw new Error("Người dùng không tồn tại");
+      }
+
+      return result.recordset[0];
+    } catch (error) {
+      throw new Error("Lỗi khi tải thông tin người dùng: " + error.message);
+    }
+  }
 }
 
 async function createUser(userData) {

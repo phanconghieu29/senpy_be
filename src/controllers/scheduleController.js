@@ -17,8 +17,8 @@ const getSchedules = async (req, res) => {
     const schedules = await scheduleModel.getSchedulesByRole(role, torteeId);
     res.json(schedules); // Return the filtered schedules as JSON
   } catch (err) {
-    console.error("Error fetching schedules:", err);
-    res.status(500).send("Error fetching schedules");
+    console.error("Lỗi khi tải lịch trình:", err);
+    res.status(500).send("Lỗi khi tải lịch trình");
   }
 };
 
@@ -34,12 +34,12 @@ const addSchedule = async (req, res) => {
       reason_for_cancel,
     });
     if (success) {
-      res.status(201).send("Schedule added successfully");
+      res.status(201).send("Lịch trình đã được thêm thành công");
     } else {
-      res.status(400).send("Failed to add schedule");
+      res.status(400).send("Không thêm được lịch trình");
     }
   } catch (err) {
-    res.status(500).send("Error adding schedule");
+    res.status(500).send("Lỗi khi thêm lịch trình");
   }
 };
 

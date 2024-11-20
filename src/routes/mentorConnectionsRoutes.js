@@ -43,7 +43,7 @@ router.patch(
 
 // API: Admin duyệt kết nối
 router.post(
-  "/admin/approve-connection/",
+  "/admin/approve-connection",
   authMiddleware,
   MentorConnectionController.approveConnection
 );

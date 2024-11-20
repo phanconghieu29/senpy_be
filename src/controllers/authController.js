@@ -26,7 +26,7 @@ async function loginUser(req, res) {
     }
 
     // Kiểm tra trạng thái người dùng
-    if (user.status !== "active") {
+    if (user.status !== "Đã kích hoạt") {
       return res
         .status(403)
         .json({ message: "Tài khoản của bạn không hoạt động" });

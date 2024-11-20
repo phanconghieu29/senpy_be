@@ -7,6 +7,7 @@ const mentorConnectionsRoutes = require("./routes/mentorConnectionsRoutes");
 const userRoutes = require("./routes/userRoutes");
 const newsRoutes = require("./routes/newsRoutes");
 const scheduleRoutes = require("./routes/scheduleRoutes");
+const reportRoutes = require("./routes/reportRoutes");
 
 const app = express();
 app.use(cors());
@@ -20,5 +21,6 @@ app.use("/api/users", userRoutes);
 app.use("/api/news", newsRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/uploads', express.static('uploads'));
+app.use('/api/reports', reportRoutes);
 
 module.exports = app;

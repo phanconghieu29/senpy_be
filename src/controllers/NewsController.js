@@ -90,18 +90,18 @@ class NewsController {
       if (result.rowsAffected[0] > 0) {
         return res.json({
           success: true,
-          message: "News deleted successfully",
+          message: "Xóa tin tức thành công",
         });
       } else {
         return res
           .status(404)
-          .json({ success: false, message: "News not found" });
+          .json({ success: false, message: "Không tìm thấy tin tức" });
       }
     } catch (err) {
       console.error(err);
       return res
         .status(500)
-        .json({ success: false, message: "Failed to delete news" });
+        .json({ success: false, message: "Lỗi khi xóa tin tức" });
     }
   }
 }
