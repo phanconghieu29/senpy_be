@@ -1,10 +1,41 @@
 const { poolPromise, sql } = require("../config/db"); // Kết nối database của bạn
 
 // Hàm lấy danh sách lịch
+// const getSchedules = async () => {
+//   try {
+//     const pool = await poolPromise;
+//     const result = await pool.request().query("SELECT * FROM Schedules"); // Thay 'Schedule' bằng tên bảng thực tế của bạn
+//     return result.recordset; // Trả về kết quả dưới dạng mảng
+//   } catch (err) {
+//     console.error("Lỗi khi tải lịch trình:", err);
+//     throw err;
+//   }
+// };
+
 const getSchedules = async () => {
   try {
     const pool = await poolPromise;
-    const result = await pool.request().query("SELECT * FROM Schedules"); // Thay 'Schedule' bằng tên bảng thực tế của bạn
+    const result = await pool.request().query(`
+      SELECT 
+          s.schedule_id,
+          s.scheduled_time,
+          s.status,
+          s.title,
+          s.reason_for_cancel,
+          m_user.name AS mentor_name,
+          me_user.name AS mentee_name
+      FROM 
+          Schedules s
+      JOIN 
+          Mentor m ON s.mentor_id = m.id
+      JOIN 
+          Users m_user ON m.user_id = m_user.user_id
+      JOIN 
+          Mentee me ON s.mentee_id = me.id
+      JOIN 
+          Users me_user ON me.user_id = me_user.user_id;
+    `);
+
     return result.recordset; // Trả về kết quả dưới dạng mảng
   } catch (err) {
     console.error("Lỗi khi tải lịch trình:", err);
@@ -18,7 +49,27 @@ const getSchedulesByRole = async (role, torteeId) => {
     const pool = await poolPromise;
 
     // Construct the query based on user role
-    let query = "SELECT * FROM Schedules";
+    let query = `
+      SELECT 
+          s.schedule_id,
+          s.scheduled_time,
+          s.status,
+          s.title,
+          s.reason_for_cancel,
+          s.location,
+          m_user.name AS mentor_name,
+          me_user.name AS mentee_name
+      FROM 
+          Schedules s
+      JOIN 
+          Mentor m ON s.mentor_id = m.id
+      JOIN 
+          Users m_user ON m.user_id = m_user.user_id
+      JOIN 
+          Mentee me ON s.mentee_id = me.id
+      JOIN 
+          Users me_user ON me.user_id = me_user.user_id
+    `;
     if (role === "mentor") {
       query += " WHERE mentor_id = @torteeId"; // Mentor sees their mentees' schedules
     } else if (role === "mentee") {
@@ -41,21 +92,17 @@ const getSchedulesByRole = async (role, torteeId) => {
 const addSchedule = async (schedule) => {
   try {
     const pool = await poolPromise;
-    const { mentee_id, scheduled_time, status, title, reason_for_cancel } =
+    const { mentee_id, scheduled_time, status, title, location, reason_for_cancel } =
       schedule;
 
     const mentorQuery = await pool
       .request()
       .input("mentee_id", sql.Int, mentee_id)
-      .input("status", sql.NVarChar(20), "Đã kết nối")
-      .query(`
+      .input("status", sql.NVarChar(20), "Đã kết nối").query(`
         SELECT mentor_id 
         FROM MentorConnections 
         WHERE mentee_id = @mentee_id AND status = @status
       `);
-
-    console.log("mentee_id:", mentee_id);
-    console.log("status:", "Đã kết nối");
 
     const mentor_id = mentorQuery.recordset[0]?.mentor_id;
 
@@ -73,9 +120,10 @@ const addSchedule = async (schedule) => {
       .input("scheduled_time", sql.DateTime, scheduled_time)
       .input("status", sql.NVarChar(20), status)
       .input("title", sql.NVarChar(50), title)
+      .input("location", sql.NVarChar(100), location)
       .input("reason_for_cancel", sql.Text, reason_for_cancel).query(`
-        INSERT INTO Schedules (mentor_id, mentee_id, scheduled_time, status, title, reason_for_cancel)
-        VALUES (@mentor_id, @mentee_id, @scheduled_time, @status, @title, @reason_for_cancel)
+        INSERT INTO Schedules (mentor_id, mentee_id, scheduled_time, status, title, location, reason_for_cancel)
+        VALUES (@mentor_id, @mentee_id, @scheduled_time, @status, @title, @location, @reason_for_cancel)
       `);
 
     return result.rowsAffected > 0;

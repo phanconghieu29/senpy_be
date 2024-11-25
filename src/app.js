@@ -19,8 +19,8 @@ app.use("/api/mentees", menteeRoutes);
 app.use("/api/connections", mentorConnectionsRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/news", newsRoutes);
-app.use('/api/schedules', scheduleRoutes);
-app.use('/uploads', express.static('uploads'));
-app.use('/api/reports', reportRoutes);
+app.use("/api/schedules", scheduleRoutes);
+app.use("/uploads", express.static("uploads"));
+app.use("/api/reports", reportRoutes);
 
 module.exports = app;

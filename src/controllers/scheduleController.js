@@ -23,7 +23,7 @@ const getSchedules = async (req, res) => {
 };
 
 const addSchedule = async (req, res) => {
-  const { mentee_id, scheduled_time, status, title, reason_for_cancel } =
+  const { mentee_id, scheduled_time, status, title, location, reason_for_cancel } =
     req.body;
   try {
     const success = await scheduleModel.addSchedule({
@@ -31,6 +31,7 @@ const addSchedule = async (req, res) => {
       scheduled_time,
       status,
       title,
+      location,
       reason_for_cancel,
     });
     if (success) {
