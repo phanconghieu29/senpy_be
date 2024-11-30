@@ -8,6 +8,8 @@ const userRoutes = require("./routes/userRoutes");
 const newsRoutes = require("./routes/newsRoutes");
 const scheduleRoutes = require("./routes/scheduleRoutes");
 const reportRoutes = require("./routes/reportRoutes");
+const surveyRoutes = require("./routes/surveyRoutes");
+const statisticsRoutes = require("./routes/statisticsRoutes");
 
 const app = express();
 app.use(cors());
@@ -22,5 +24,7 @@ app.use("/api/news", newsRoutes);
 app.use("/api/schedules", scheduleRoutes);
 app.use("/uploads", express.static("uploads"));
 app.use("/api/reports", reportRoutes);
+app.use('/api/survey', surveyRoutes);
+app.use("/api/statistics", statisticsRoutes);
 
 module.exports = app;

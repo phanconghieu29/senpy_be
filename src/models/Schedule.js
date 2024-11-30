@@ -176,6 +176,39 @@ const deleteSchedule = async (scheduleId) => {
   }
 };
 
+const getOrderedSchedulesForMentee = async (menteeId) => {
+  try {
+    const pool = await poolPromise;
+
+    const query = `
+      SELECT 
+          s.schedule_id,
+          s.scheduled_time,
+          ROW_NUMBER() OVER (PARTITION BY s.mentor_id, s.mentee_id ORDER BY s.scheduled_time) AS meeting_order,
+          ISNULL(ss.summary_id, 0) AS has_report
+      FROM 
+          Schedules s
+      LEFT JOIN 
+          SessionSummaries ss ON s.schedule_id = ss.schedule_id
+      WHERE 
+          s.mentee_id = @menteeId AND 
+          s.status = 'scheduled'
+      ORDER BY 
+          s.scheduled_time;
+    `;
+
+    const result = await pool
+      .request()
+      .input("menteeId", sql.Int, menteeId)
+      .query(query);
+
+    return result.recordset; // Trả về kết quả dưới dạng mảng
+  } catch (err) {
+    console.error("Lỗi khi lấy danh sách lịch trình có thứ tự:", err);
+    throw err;
+  }
+};
+
 module.exports = {
   getSchedules,
   addSchedule,
@@ -183,4 +216,5 @@ module.exports = {
   updateStatus,
   getSchedulesByRole,
   deleteSchedule,
+  getOrderedSchedulesForMentee,
 };

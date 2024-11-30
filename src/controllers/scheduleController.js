@@ -23,8 +23,14 @@ const getSchedules = async (req, res) => {
 };
 
 const addSchedule = async (req, res) => {
-  const { mentee_id, scheduled_time, status, title, location, reason_for_cancel } =
-    req.body;
+  const {
+    mentee_id,
+    scheduled_time,
+    status,
+    title,
+    location,
+    reason_for_cancel,
+  } = req.body;
   try {
     const success = await scheduleModel.addSchedule({
       mentee_id,
@@ -66,9 +72,26 @@ const deleteSchedule = async (req, res) => {
   }
 };
 
+const getOrderedSchedules = async (req, res) => {
+  // const menteeId = req.params.menteeId;
+  const { torteeId } = req.user;
+
+  try {
+    // const schedules = await scheduleModel.getOrderedSchedulesForMentee(menteeId);
+    const schedules = await scheduleModel.getOrderedSchedulesForMentee(
+      torteeId
+    );
+    res.json(schedules); // Return the result as a JSON response
+  } catch (err) {
+    console.error("Lỗi khi lấy lịch trình có thứ tự:", err);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
 module.exports = {
   getSchedules,
   addSchedule,
   approveSchedule,
   deleteSchedule,
+  getOrderedSchedules,
 };

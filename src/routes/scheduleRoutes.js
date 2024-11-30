@@ -14,4 +14,6 @@ router.post('/approve-schedule', authMiddleware, scheduleController.approveSched
 
 router.delete('/delete-schedule', authMiddleware, scheduleController.deleteSchedule);
 
+router.get("/ordered", authMiddleware, scheduleController.getOrderedSchedules);
+
 module.exports = router;

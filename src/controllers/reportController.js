@@ -5,8 +5,8 @@ const path = require('path');
 const createReport = async (req, res) => {
   const {
     schedule_id,
-    mentor_id,
-    mentee_id,
+    // mentor_id,
+    // mentee_id,
     crossMentor,
     meetingNumber,
     resultsAchieved,
@@ -23,8 +23,8 @@ const createReport = async (req, res) => {
     // Lưu dữ liệu vào cơ sở dữ liệu
     const result = await createReportSession({
       schedule_id,
-      mentor_id,
-      mentee_id,
+      // mentor_id,
+      // mentee_id,
       cross_mentor: crossMentor,
       meeting_number: meetingNumber,
       achieved_results: resultsAchieved,
