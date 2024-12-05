@@ -4,11 +4,12 @@ class NewsModel {
   static async createNews({ title, content, author_id, image_url }) {
     try {
       const pool = await poolPromise;
-      const result = await pool.request()
-        .input('title', title)
-        .input('content', content)
-        .input('author_id', author_id)
-        .input('image_url', image_url) // Truyền đường dẫn ảnh vào query
+      const result = await pool
+        .request()
+        .input("title", title)
+        .input("content", content)
+        .input("author_id", author_id)
+        .input("image_url", image_url) // Truyền đường dẫn ảnh vào query
         .query(`
           INSERT INTO News (title, content, author_id, image_url)
           VALUES (@title, @content, @author_id, @image_url);
@@ -47,6 +48,8 @@ class NewsModel {
           News
         INNER JOIN 
           Users ON News.author_id = Users.user_id
+        ORDER BY 
+          News.post_date DESC
       `);
       return result.recordset;
     } catch (err) {
@@ -58,8 +61,9 @@ class NewsModel {
   static async getNewsById(news_id) {
     try {
       const pool = await poolPromise;
-      const result = await pool.request()
-        .input('news_id', sql.Int, parseInt(news_id, 10)) // Parse news_id as integer and set type to Int
+      const result = await pool
+        .request()
+        .input("news_id", sql.Int, parseInt(news_id, 10)) // Parse news_id as integer and set type to Int
         .query(`
           SELECT 
             News.news_id, 
@@ -75,19 +79,19 @@ class NewsModel {
           WHERE 
             News.news_id = @news_id
         `);
-  
+
       return result.recordset[0]; // Return the first record
     } catch (err) {
       console.error("Lỗi khi lấy chi tiết tin tức:", err);
       throw err;
     }
   }
-  
 
   static async updateNews({ news_id, title, content, image_url }) {
     try {
       const pool = await poolPromise;
-      const request = pool.request()
+      const request = pool
+        .request()
         .input("news_id", news_id)
         .input("title", title)
         .input("content", content);
@@ -115,9 +119,10 @@ class NewsModel {
   static async deleteNews(news_id) {
     try {
       const pool = await poolPromise; // Đảm bảo rằng pool đã kết nối
-      const result = await pool.request()
-        .input('news_id', sql.Int, news_id) // Chỉ định kiểu dữ liệu cho news_id
-        .query('DELETE FROM News WHERE news_id = @news_id'); // Sử dụng tham số SQL
+      const result = await pool
+        .request()
+        .input("news_id", sql.Int, news_id) // Chỉ định kiểu dữ liệu cho news_id
+        .query("DELETE FROM News WHERE news_id = @news_id"); // Sử dụng tham số SQL
 
       return result;
     } catch (err) {

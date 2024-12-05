@@ -33,35 +33,6 @@ const createReportSession = async (data) => {
   return result.recordset;
 };
 
-// const getAllReports = async () => {
-//   const pool = await poolPromise;
-//   const query = `
-//     SELECT
-//       ss.summary_id,
-//       s.scheduled_time AS scheduled_time,
-//       u1.name AS mentor_name,
-//       u2.name AS mentee_name,
-//       ss.cross_mentor,
-//       ss.meeting_number,
-//       FORMAT(ss.report_date, 'yyyy-MM-dd') AS report_date,
-//       ss.achieved_results,
-//       ss.current_issues,
-//       ss.mentor_guidance,
-//       ss.next_steps_and_commitments,
-//       ss.image,
-//       ss.status
-//     FROM
-//       SessionSummaries ss
-//     LEFT JOIN Schedules s ON ss.schedule_id = s.schedule_id
-//     LEFT JOIN Mentor m ON ss.mentor_id = m.id
-//     LEFT JOIN Users u1 ON m.user_id = u1.user_id
-//     LEFT JOIN Mentee me ON ss.mentee_id = me.id
-//     LEFT JOIN Users u2 ON me.user_id = u2.user_id
-//   `;
-
-//   const result = await pool.request().query(query);
-//   return result.recordset;
-// };
 
 const getAllReports = async () => {
   const pool = await poolPromise;
@@ -117,45 +88,6 @@ const updateReportStatus = async (id, status) => {
   }
 };
 
-// const getReportsByStatus = async (status) => {
-//   const pool = await poolPromise;
-//   const query = `
-//       SELECT
-//           ss.summary_id,
-//           s.scheduled_time AS scheduled_time,
-//           u1.name AS mentor_name,
-//           u2.name AS mentee_name,
-//           ss.cross_mentor,
-//           ss.meeting_number,
-//           FORMAT(ss.report_date, 'yyyy-MM-dd') AS report_date,
-//           ss.achieved_results,
-//           ss.current_issues,
-//           ss.mentor_guidance,
-//           ss.next_steps_and_commitments,
-//           ss.image,
-//           ss.status
-//       FROM
-//           SessionSummaries ss
-//       LEFT JOIN Schedules s ON ss.schedule_id = s.schedule_id
-//       LEFT JOIN Mentor m ON ss.mentor_id = m.id
-//       LEFT JOIN Users u1 ON m.user_id = u1.user_id
-//       LEFT JOIN Mentee me ON ss.mentee_id = me.id
-//       LEFT JOIN Users u2 ON me.user_id = u2.user_id
-//       WHERE ss.status = @status
-//   `;
-
-//   try {
-//     const result = await pool
-//       .request()
-//       .input("status", sql.NVarChar, status) // Truyền trạng thái
-//       .query(query);
-//     return result.recordset;
-//   } catch (error) {
-//     console.error("Lỗi khi truy vấn báo cáo theo trạng thái:", error);
-//     throw error;
-//   }
-// };
-// models/ReportSession.js
 
 const getReportsByStatus = async (status) => {
   const pool = await poolPromise;
@@ -196,29 +128,6 @@ const getReportsByStatus = async (status) => {
   }
 };
 
-// const updateReportStatusById = async (id, status) => {
-//   const pool = await poolPromise;
-//   const query = `UPDATE SessionSummaries SET status = @status WHERE summary_id = @id`;
-
-//   try {
-//     const result = await pool
-//       .request()
-//       .input("status", sql.NVarChar, status)
-//       .input("id", sql.Int, id)
-//       .query(query);
-
-//     if (result.rowsAffected > 0) {
-//       console.log("Report status updated successfully");
-//       return { success: true };
-//     } else {
-//       console.error("Report not found");
-//       throw new Error("Report not found");
-//     }
-//   } catch (error) {
-//     console.error("Error in updateReportStatusById:", error);
-//     throw new Error("Database operation failed");
-//   }
-// };
 
 const updateReportStatusById = async (id, status) => {
   const pool = await poolPromise;
