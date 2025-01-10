@@ -15,6 +15,7 @@ const getMentors = async (req, res) => {
         u.phone,
         u.facebook_link,
         u.status,
+        u.avatar,
         m.id as mentorID,
         m.expertise,
         m.strengths,

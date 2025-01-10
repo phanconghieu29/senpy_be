@@ -46,6 +46,19 @@ class NewsController {
     }
   }
 
+  static async getLatest(req, res) {
+    try {
+      const news = await NewsModel.getAllNews(); // Lấy tất cả bài viết
+      const latestNews = news.slice(0, 3); // Lấy 4 bài viết đầu tiên
+      return res.status(200).json(latestNews);
+    } catch (err) {
+      return res.status(500).json({
+        message: "Không thể lấy danh sách tin tức mới nhất",
+        error: err.message,
+      });
+    }
+  }
+
   static async getNewsById(req, res) {
     const { news_id } = req.params;
 

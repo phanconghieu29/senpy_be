@@ -22,6 +22,8 @@ router.post("/create", upload, NewsController.create);
 // Định tuyến để lấy tất cả bài viết
 router.get("/all", NewsController.getAll);
 
+router.get("/lastest", NewsController.getLatest);
+
 router.get("/:news_id", NewsController.getNewsById);
 
 // Thêm route cho chỉnh sửa bài viết
