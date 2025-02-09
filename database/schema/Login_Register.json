@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "User Authentication Tracking",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": ["integer", "null"],
+      "description": "ID của người dùng (null nếu chưa đăng ký hoặc chưa xác định)"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Mã phiên đăng nhập, dùng để theo dõi liên tục các sự kiện trong một phiên"
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "Địa chỉ IP của người dùng"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "Thông tin user agent của trình duyệt hoặc thiết bị"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Thời gian sự kiện xảy ra"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": ["register", "login", "logout", "failed_login", "password_reset"],
+      "description": "Loại sự kiện: đăng ký, đăng nhập, đăng xuất, đăng nhập thất bại, đặt lại mật khẩu"
+    },
+    "event_details": {
+      "type": "object",
+      "description": "Chi tiết bổ sung về sự kiện",
+      "properties": {
+        "register": {
+          "type": "object",
+          "description": "Chi tiết sự kiện đăng ký (tham chiếu Mentor hoặc Mentee nếu cần)",
+          "properties": {
+            "role": {
+              "type": "string",
+              "enum": ["mentor", "mentee"],
+              "description": "Vai trò của người đăng ký"
+            },
+            "mentor_details": {
+              "$ref": "#/definitions/mentor",
+              "description": "Thông tin chi tiết nếu người đăng ký là mentor"
+            },
+            "mentee_details": {
+              "$ref": "#/definitions/mentee",
+              "description": "Thông tin chi tiết nếu người đăng ký là mentee"
+            }
+          },
+          "required": ["role"]
+        },
+        "login": {
+          "type": "object",
+          "description": "Chi tiết sự kiện đăng nhập",
+          "properties": {
+            "username_or_email": {
+              "type": "string",
+              "description": "Tên tài khoản hoặc email dùng để đăng nhập"
+            },
+            "status": {
+              "type": "string",
+              "enum": ["success", "failed"],
+              "description": "Trạng thái đăng nhập"
+            },
+            "reason": {
+              "type": ["string", "null"],
+              "description": "Lý do thất bại nếu đăng nhập không thành công"
+            }
+          },
+          "required": ["username_or_email", "status"]
+        }
+      }
+    }
+  },
+  "definitions": {
+    "mentor": {
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "integer" },
+        "full_name": { "type": "string" },
+        "gender": { "type": "string", "enum": ["male", "female"] },
+        "email": { "type": "string", "format": "email" },
+        "facebook_link": { "type": "string", "format": "uri" },
+        "expertise": { "type": "string" },
+        "strengths": { "type": "string" },
+        "weaknesses": { "type": "string" },
+        "goals": { "type": "string" },
+        "mentoring_expectations": { "type": "string" }
+      },
+      "required": ["user_id", "expertise"]
+    },
+    "mentee": {
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "integer" },
+        "full_name": { "type": "string" },
+        "gender": { "type": "string", "enum": ["male", "female"] },
+        "email": { "type": "string", "format": "email" },
+        "facebook_link": { "type": "string", "format": "uri" },
+        "year_in_school": { "type": "string" },
+        "major": { "type": "string" },
+        "strengths": { "type": "string" },
+        "weaknesses": { "type": "string" },
+        "goals": { "type": "string" },
+        "mentoring_expectations": { "type": "string" },
+        "mentoring_activity_desires": { "type": "string" }
+      },
+      "required": [
+        "user_id",
+        "full_name",
+        "gender",
+        "email",
+        "year_in_school",
+        "major"
+      ]
+    }
+  },
+  "required": [
+    "session_id",
+    "ip_address",
+    "user_agent",
+    "timestamp",
+    "event_type",
+    "event_details"
+  ]
+}

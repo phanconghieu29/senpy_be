@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Admin Management Schema",
+  "type": "object",
+  "properties": {
+    "admin_info": {
+      "type": "object",
+      "title": "Admin Information",
+      "properties": {
+        "admin_id": {
+          "type": "integer",
+          "description": "ID của Admin (tự động tăng)"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Tên đầy đủ của Admin"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Email của Admin"
+        },
+        "phone_number": {
+          "type": "string",
+          "pattern": "^\\+?[0-9]{10,15}$",
+          "description": "Số điện thoại của Admin"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Ngày tài khoản Admin được tạo"
+        }
+      },
+      "required": ["admin_id", "name", "email", "created_at"]
+    },
+    "statistics": {
+      "type": "object",
+      "title": "Statistics Summary",
+      "properties": {
+        "total_mentors": {
+          "type": "integer",
+          "description": "Tổng số lượng mentors"
+        },
+        "total_mentees": {
+          "type": "integer",
+          "description": "Tổng số lượng mentees"
+        },
+        "total_connections": {
+          "type": "integer",
+          "description": "Tổng số lượng cặp mentors-mentees"
+        },
+        "rejected_connections": {
+          "type": "integer",
+          "description": "Số lượng kết nối bị từ chối"
+        },
+        "rejection_reasons": {
+          "type": "array",
+          "description": "Danh sách lý do từ chối kết nối",
+          "items": {
+            "type": "string"
+          }
+        },
+        "successful_sessions": {
+          "type": "integer",
+          "description": "Số lượng buổi mentoring thành công"
+        },
+        "failed_sessions": {
+          "type": "integer",
+          "description": "Số lượng buổi mentoring thất bại hoặc bị hủy"
+        },
+        "recap_posts_count": {
+          "type": "object",
+          "properties": {
+            "mentor_posts": {
+              "type": "integer",
+              "description": "Số lượng bài đăng recap của mentors"
+            },
+            "mentee_posts": {
+              "type": "integer",
+              "description": "Số lượng bài đăng recap của mentees"
+            }
+          },
+          "required": ["mentor_posts", "mentee_posts"]
+        }
+      },
+      "required": [
+        "total_mentors",
+        "total_mentees",
+        "total_connections",
+        "successful_sessions",
+        "failed_sessions",
+        "recap_posts_count"
+      ]
+    },
+    "news_post": {
+      "type": "object",
+      "title": "Admin News Post Schema",
+      "properties": {
+        "news_id": {
+          "type": "integer",
+          "description": "ID của bài tin tức (tự động tăng)"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "Tiêu đề tin tức"
+        },
+        "content": {
+          "type": "string",
+          "description": "Nội dung tin tức"
+        },
+        "post_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Ngày bài tin tức được đăng"
+        },
+        "author_id": {
+          "type": "integer",
+          "description": "ID của tác giả bài tin tức (Admin)"
+        },
+        "image_url": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "description": "URL của hình ảnh đi kèm với tin tức (nếu có)"
+        }
+      },
+      "required": ["news_id", "title", "content", "post_date", "author_id"]
+    }
+  },
+  "required": ["admin_info", "statistics", "news_post"]
+}

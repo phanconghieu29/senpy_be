@@ -1,0 +1,283 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Mentor-Mentee Full Process Schema",
+  "type": "object",
+  "properties": {
+    "mentor_connection": {
+      "type": "object",
+      "title": "Mentor Connection Schema",
+      "properties": {
+        "connection_id": {
+          "type": "integer",
+          "description": "ID của kết nối (tự động tăng)"
+        },
+        "mentee_id": {
+          "type": "integer",
+          "description": "ID của Mentee (khóa ngoại)"
+        },
+        "mentor_id": {
+          "type": "integer",
+          "description": "ID của Mentor (khóa ngoại)"
+        },
+        "introduction": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "Lời giới thiệu của mentee khi gửi yêu cầu kết nối"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "description": "Trạng thái của kết nối: 'pending', 'approved', hoặc 'rejected'"
+        },
+        "reason_for_rejection": {
+          "type": ["string", "null"],
+          "description": "Lý do từ chối nếu trạng thái là 'rejected'"
+        },
+        "request_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Ngày gửi yêu cầu kết nối"
+        },
+        "approval_date": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "Ngày phê duyệt hoặc từ chối yêu cầu"
+        }
+      },
+      "required": ["mentee_id", "mentor_id", "status", "request_date"]
+    },
+    "mentoring_schedule": {
+      "type": "object",
+      "title": "Mentoring Schedule Schema",
+      "properties": {
+        "schedule_id": {
+          "type": "integer",
+          "description": "ID của lịch cố vấn (tự động tăng)"
+        },
+        "mentor_id": {
+          "type": "integer",
+          "description": "ID của Mentor (khóa ngoại)"
+        },
+        "mentee_id": {
+          "type": "integer",
+          "description": "ID của Mentee (khóa ngoại)"
+        },
+        "scheduled_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời gian buổi cố vấn được lên lịch"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["scheduled", "completed", "canceled"],
+          "description": "Trạng thái của lịch: 'scheduled', 'completed', hoặc 'canceled'"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Tiêu đề của buổi cố vấn"
+        },
+        "location": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Địa điểm diễn ra buổi cố vấn"
+        },
+        "reason_for_cancel": {
+          "type": ["string", "null"],
+          "description": "Lý do hủy buổi cố vấn (nếu có)"
+        }
+      },
+      "required": [
+        "mentor_id",
+        "mentee_id",
+        "scheduled_time",
+        "status",
+        "title"
+      ]
+    },
+    "matching_mentor_mentee": {
+      "type": "object",
+      "properties": {
+        "connection_id": { "type": "integer" },
+        "mentor_id": { "type": "integer" },
+        "mentee_id": { "type": "integer" },
+        "introduction": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": ["Chờ mentor", "Chờ BĐH", "Đã kết nối", "Từ chối bởi BĐH"]
+        },
+        "request_date": { "type": "string", "format": "date-time" },
+        "approval_date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["mentor_id", "mentee_id", "status", "request_date"]
+    },
+    "news": {
+      "type": "object",
+      "properties": {
+        "news_id": {
+          "type": "integer",
+          "description": "ID của bài viết (tự động sinh ra)."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Tiêu đề của bài viết."
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Nội dung chi tiết của bài viết."
+        },
+        "author_id": {
+          "type": "integer",
+          "description": "ID của tác giả bài viết (tham chiếu đến bảng Users)."
+        },
+        "author_name": {
+          "type": "string",
+          "description": "Tên tác giả (lấy từ bảng Users thông qua JOIN)."
+        },
+        "image_url": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "description": "URL của hình ảnh liên quan đến bài viết."
+        },
+        "post_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Ngày đăng bài viết."
+        }
+      },
+      "required": ["title", "content", "author_id"],
+      "additionalProperties": false
+    },
+    "RecaptSession ": {
+      "type": "object",
+      "properties": {
+        "summary_id": {
+          "type": "integer",
+          "description": "ID duy nhất của báo cáo"
+        },
+        "schedule_id": {
+          "type": "integer",
+          "description": "ID của lịch trình liên quan"
+        },
+        "cross_mentor": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "Tên mentor bổ sung hoặc mentor chéo"
+        },
+        "meeting_number": {
+          "type": "integer",
+          "description": "Số thứ tự của buổi gặp"
+        },
+        "achieved_results": {
+          "type": "string",
+          "description": "Kết quả đạt được trong buổi gặp"
+        },
+        "current_issues": {
+          "type": "string",
+          "description": "Các vấn đề hiện tại"
+        },
+        "mentor_guidance": {
+          "type": "string",
+          "description": "Hướng dẫn từ mentor"
+        },
+        "next_steps_and_commitments": {
+          "type": "string",
+          "description": "Các bước tiếp theo và cam kết"
+        },
+        "image": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL hình ảnh liên quan đến báo cáo"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "description": "Trạng thái của báo cáo"
+        },
+        "recap_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Ngày tạo báo cáo"
+        },
+        "mentor_name": {
+          "type": "string",
+          "description": "Tên của mentor"
+        },
+        "mentee_name": {
+          "type": "string",
+          "description": "Tên của mentee"
+        },
+        "scheduled_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời gian được lên lịch"
+        }
+      },
+      "required": ["schedule_id", "meeting_number", "status"],
+      "additionalProperties": false
+    },
+    "recap_post": {
+      "type": "object",
+      "title": "Recap Post Schema",
+      "properties": {
+        "post_id": {
+          "type": "integer",
+          "description": "ID của bài post (tự động tăng)"
+        },
+        "schedule_id": {
+          "type": "integer",
+          "description": "ID của buổi cố vấn mà bài post liên quan đến (khóa ngoại từ Mentoring Schedule)"
+        },
+        "author_id": {
+          "type": "integer",
+          "description": "ID của người viết bài recap (mentor hoặc mentee)"
+        },
+        "content": {
+          "type": "string",
+          "description": "Nội dung của bài post"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời gian bài post được tạo"
+        },
+        "likes_count": {
+          "type": "integer",
+          "default": 0,
+          "description": "Số lượt thích bài post"
+        },
+        "comments": {
+          "type": "array",
+          "description": "Danh sách các bình luận",
+          "items": {
+            "type": "object",
+            "properties": {
+              "comment_id": {
+                "type": "integer",
+                "description": "ID của bình luận"
+              },
+              "author_id": {
+                "type": "integer",
+                "description": "ID của người bình luận"
+              },
+              "content": {
+                "type": "string",
+                "description": "Nội dung bình luận"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Thời gian bình luận được tạo"
+              }
+            },
+            "required": ["comment_id", "author_id", "content", "created_at"]
+          }
+        }
+      },
+      "required": ["schedule_id", "author_id", "content", "created_at"]
+    }
+  }
+}

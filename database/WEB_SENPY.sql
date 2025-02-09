@@ -1,12 +1,6 @@
 ﻿USE master
 GO
 
---ALTER DATABASE WEB_SENPY SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-
---DROP DATABASE WEB_SENPY
---GO
-
-
 CREATE DATABASE WEB_SENPY
 GO
 
@@ -54,26 +48,26 @@ GO
 
 ---- Tạo bảng InterviewNotifications: Quản lý thông báo lịch phỏng vấn cho Mentee
 --CREATE TABLE InterviewNotifications (
---    notification_id INT PRIMARY KEY IDENTITY(1,1),  -- ID tự động tăng
+--    notification_id INT PRIMARY KEY IDENTITY(1,1),  
 --    mentee_id INT NOT NULL,
---    time DATETIME,                                  -- Thời gian phỏng vấn
---    location NVARCHAR(255),                         -- Địa điểm phỏng vấn
---    requirements NTEXT,                             -- Yêu cầu liên quan
---    status NVARCHAR(20),                            -- Trạng thái: 'sent', 'updated', 'error'
+--    time DATETIME,                                 
+--    location NVARCHAR(255),                        
+--    requirements NTEXT,                             
+--    status NVARCHAR(20),                            
 --    FOREIGN KEY (mentee_id) REFERENCES Mentee(id)
 --)
 --GO
 
 -- Tạo bảng Schedules: Quản lý lịch cố vấn giữa Mentor và Mentee
 CREATE TABLE Schedules (
-    schedule_id INT PRIMARY KEY IDENTITY(1,1),      -- ID tự động tăng
+    schedule_id INT PRIMARY KEY IDENTITY(1,1),      
     mentor_id INT NOT NULL,
     mentee_id INT NOT NULL,
-    scheduled_time DATETIME,                        -- Thời gian hẹn
-    status NVARCHAR(20),                            -- Trạng thái: 'scheduled', 'cancelled'
+    scheduled_time DATETIME,                        
+    status NVARCHAR(20),                            
 	title NVARCHAR(50),
 	location NVARCHAR(100),
-    reason_for_cancel NTEXT,                        -- Lý do hủy (nếu có)
+    reason_for_cancel NTEXT,                      
     FOREIGN KEY (mentor_id) REFERENCES Mentor(id),
     FOREIGN KEY (mentee_id) REFERENCES Mentee(id)
 )
@@ -81,9 +75,9 @@ GO
 
 -- Tạo bảng SessionSummaries: Lưu báo cáo và tổng kết buổi cố vấn của Mentee
 CREATE TABLE SessionSummaries (
-    summary_id INT PRIMARY KEY IDENTITY(1,1),           -- ID bài báo cáo tự động tăng
-    schedule_id INT NOT NULL,                           -- ID lịch, tham chiếu đến bảng Schedules để lấy ngày gặp
-    cross_mentor NVARCHAR(255),                         -- Tên Cross Mentor
+    summary_id INT PRIMARY KEY IDENTITY(1,1),           
+    schedule_id INT NOT NULL,                           
+    cross_mentor NVARCHAR(255),                         
     meeting_number INT,                                 -- Lần gặp
     report_date DATETIME DEFAULT GETDATE(),             -- Ngày viết báo cáo, tự động lấy
     achieved_results NTEXT,                             -- Kết quả đạt được

@@ -1,31 +1,45 @@
-const { sql, poolPromise } = require('../config/db');
+const mongoose = require("mongoose");
 
-class Mentor {
-  constructor(user_id, expertise, strengths, weaknesses, goals, mentoring_expectations, reason_for_mentoring) {
-      this.user_id = user_id;
-      this.expertise = expertise;
-      this.strengths = strengths;
-      this.weaknesses = weaknesses;
-      this.goals = goals;
-      this.mentoring_expectations = mentoring_expectations;
-      this.reason_for_mentoring = reason_for_mentoring;
-  }
-}
+const MentorSchema = new mongoose.Schema(
+  {
+    user_id: {
+      type: Number,
+      required: true,
+    },
+    expertise: {
+      type: String,
+      required: true,
+    },
+    strengths: {
+      type: String,
+    },
+    weaknesses: {
+      type: String,
+    },
+    goals: {
+      type: String,
+    },
+    mentoring_expectations: {
+      type: String,
+    },
+    reason_for_mentoring: {
+      type: String,
+    },
+  },
+  { timestamps: true }
+);
+
+const Mentor = mongoose.model("Mentor", MentorSchema);
 
 async function createMentor(mentorData) {
-  const pool = await poolPromise;
-  await pool.request()
-    .input('user_id', sql.Int, mentorData.user_id)
-    .input('expertise', sql.NVarChar, mentorData.expertise)
-    .input('strengths', sql.NText, mentorData.strengths)
-    .input('weaknesses', sql.NText, mentorData.weaknesses)
-    .input('goals', sql.NText, mentorData.goals)
-    .input('mentoring_expectations', sql.NText, mentorData.mentoring_expectations)
-    .input('reason_for_mentoring', sql.NText, mentorData.reason_for_mentoring)
-    .query(`
-      INSERT INTO Mentor (user_id, expertise, strengths, weaknesses, goals, mentoring_expectations, reason_for_mentoring)
-      VALUES (@user_id, @expertise, @strengths, @weaknesses, @goals, @mentoring_expectations, @reason_for_mentoring)
-    `);
+  try {
+    const mentor = new Mentor(mentorData);
+    const savedMentor = await mentor.save();
+    return savedMentor;
+  } catch (error) {
+    console.error("Error creating mentor:", error);
+    throw error;
+  }
 }
 
 module.exports = { Mentor, createMentor };

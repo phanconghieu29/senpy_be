@@ -1,31 +1,70 @@
-const { sql, poolPromise } = require('../config/db');
+const mongoose = require("mongoose");
 
-class Mentee {
-  constructor(user_id, year_in_school, major, strengths, weaknesses, goals, mentoring_expectations) {
-    this.user_id = user_id;
-    this.year_in_school = year_in_school;
-    this.major = major;
-    this.strengths = strengths;
-    this.weaknesses = weaknesses;
-    this.goals = goals;
-    this.mentoring_expectations = mentoring_expectations;
-  }
-}
+const MenteeSchema = new mongoose.Schema(
+  {
+    user_id: {
+      type: Number,
+      required: true,
+    },
+    full_name: {
+      type: String,
+      required: true,
+    },
+    gender: {
+      type: String,
+      enum: ["male", "female"],
+      required: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      match: [/^\S+@\S+\.\S+$/, "Invalid email format"],
+    },
+    facebook_link: {
+      type: String,
+      match: [
+        /^https?:\/\/(www\.)?facebook\.com\/[A-Za-z0-9_.-]+$/,
+        "Invalid Facebook URL format",
+      ],
+    },
+    year_in_school: {
+      type: String,
+      required: true,
+    },
+    major: {
+      type: String,
+      required: true,
+    },
+    strengths: {
+      type: String,
+    },
+    weaknesses: {
+      type: String,
+    },
+    goals: {
+      type: String,
+    },
+    mentoring_expectations: {
+      type: String,
+    },
+    mentoring_activity_desires: {
+      type: String,
+    },
+  },
+  { timestamps: true }
+); // Thêm timestamps để tự động lưu createdAt và updatedAt
+
+const Mentee = mongoose.model("Mentee", MenteeSchema);
 
 async function createMentee(menteeData) {
-  const pool = await poolPromise;
-  await pool.request()
-    .input('user_id', sql.Int, menteeData.user_id)
-    .input('year_in_school', sql.NVarChar, menteeData.year_in_school)
-    .input('major', sql.NVarChar, menteeData.major)
-    .input('strengths', sql.NText, menteeData.strengths)
-    .input('weaknesses', sql.NText, menteeData.weaknesses)
-    .input('goals', sql.NText, menteeData.goals)
-    .input('mentoring_expectations', sql.NText, menteeData.mentoring_expectations)
-    .query(`
-      INSERT INTO Mentee (user_id, year_in_school, major, strengths, weaknesses, goals, mentoring_expectations)
-      VALUES (@user_id, @year_in_school, @major, @strengths, @weaknesses, @goals, @mentoring_expectations)
-    `);
+  try {
+    const mentee = new Mentee(menteeData);
+    const savedMentee = await mentee.save();
+    return savedMentee;
+  } catch (error) {
+    console.error("Error creating mentee:", error);
+    throw error;
+  }
 }
 
 module.exports = { Mentee, createMentee };
