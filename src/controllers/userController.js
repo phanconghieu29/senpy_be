@@ -15,33 +15,88 @@ const getUsers = async (req, res) => {
   }
 };
 
+// const registerUser = async (req, res) => {
+//   try {
+//     const { name, gender, email, phone, facebook_link } = req.body;
+
+//     // Default password is phone number
+//     const password = phone;
+
+//     // Mã hóa mật khẩu
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // Insert into Users table
+//     await createUser({
+//       name,
+//       gender,
+//       email,
+//       phone,
+//       facebook_link,
+//       password: hashedPassword,
+//       role: "admin",
+//       avatar: null,
+//       status: "active",
+//     });
+
+//     res.status(200).json({ message: "Đăng ký người dùng thành công!" });
+//   } catch (error) {
+//     console.error("Lỗi khi đăng ký người dùng:", error);
+//     res.status(500).json({ message: "Đăng ký không thành công." });
+//   }
+// };
+
 const registerUser = async (req, res) => {
   try {
-    const { name, gender, email, phone, facebook_link } = req.body;
+    const { name, gender, email, phone, password, role, profile } = req.body;
 
-    // Default password is phone number
-    const password = phone;
+    // Kiểm tra role hợp lệ
+    if (!["mentor", "mentee"].includes(role)) {
+      return res.status(400).json({ message: "Vai trò không hợp lệ!" });
+    }
+
+    // Kiểm tra email đã tồn tại chưa
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email đã được sử dụng!" });
+    }
 
     // Mã hóa mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert into Users table
-    await createUser({
+    // Tạo object chứa thông tin profile
+    const profileData =
+      role === "mentor" ? { mentor_details: profile } : { mentee_details: profile };
+
+    // Tạo user mới
+    const newUser = new User({
       name,
       gender,
       email,
       phone,
-      facebook_link,
       password: hashedPassword,
-      role: "admin",
-      avatar: null,
-      status: "active",
+      role,
+      status: "pending", // Chờ admin duyệt
+      ...profileData, // Lưu thông tin vào đúng schema
     });
 
-    res.status(200).json({ message: "Đăng ký người dùng thành công!" });
+    // Lưu user vào database
+    await newUser.save();
+
+    // Trả về kết quả (ẩn mật khẩu)
+    res.status(201).json({
+      message: "Đăng ký thành công! Vui lòng chờ admin duyệt.",
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        status: newUser.status,
+        profile: profile,
+      },
+    });
   } catch (error) {
-    console.error("Lỗi khi đăng ký người dùng:", error);
-    res.status(500).json({ message: "Đăng ký không thành công." });
+    console.error("Lỗi đăng ký:", error);
+    res.status(500).json({ message: "Lỗi máy chủ, thử lại sau!" });
   }
 };
 
