@@ -6,13 +6,14 @@ const { User }= require("../models/User");
 
 const getMentees = async (req, res) => {
   try {
-    const mentees = await User.find({ role: "mentee" }).populate("menteeDetails");
-    res.json(mentees);
+    const mentees = await User.find({ role: "mentee" }).select("-password");
+    res.status(200).json({ mentees });
   } catch (error) {
-    console.error("Lỗi khi lấy danh sách mentee:", error);
-    res.status(500).json({ message: "Không thể lấy danh sách mentee" });
+    console.error("Lỗi khi lấy danh sách mentees:", error);
+    res.status(500).json({ message: "Lỗi máy chủ, thử lại sau!" });
   }
 };
+
 
 const registerMentee = async (req, res) => {
   try {
@@ -73,9 +74,20 @@ const registerMentee = async (req, res) => {
 
 const approveMentee = async (req, res) => {
   try {
-    const menteeId = req.params.menteeId;
-    await User.findByIdAndUpdate(menteeId, { status: "Đã kích hoạt" });
-    res.status(200).json({ message: "Mentee approved successfully" });
+    const { id } = req.params;
+    
+    // Kiểm tra xem user có phải là mentee không
+    const mentee = await User.findOneAndUpdate(
+      { _id: id, role: "mentee" }, // Chỉ cập nhật nếu role là mentee
+      { status: "Đã kích hoạt" },
+      { new: true }
+    );
+
+    if (!mentee) {
+      return res.status(404).json({ message: "Mentee không tồn tại hoặc không hợp lệ!" });
+    }
+
+    res.status(200).json({ message: "Mentee approved successfully", mentee });
   } catch (error) {
     console.error("Error approving mentee:", error);
     res.status(500).json({ message: "Error approving mentee" });
@@ -84,9 +96,16 @@ const approveMentee = async (req, res) => {
 
 const rejectMentee = async (req, res) => {
   try {
-    const menteeId = req.params.menteeId;
-    await Mentee.findOneAndDelete({ user_id: menteeId });
-    await User.findByIdAndDelete(menteeId);
+    const { id } = req.params;
+
+    // Kiểm tra xem user có phải là mentee không
+    const mentee = await User.findOne({ _id: id, role: "mentee" });
+    if (!mentee) {
+      return res.status(404).json({ message: "Mentee không tồn tại hoặc không hợp lệ!" });
+    }
+
+    // Xóa mentee khỏi DB
+    await User.findByIdAndDelete(id);
     res.status(200).json({ message: "Mentee rejected and data removed." });
   } catch (error) {
     console.error("Error rejecting mentee:", error);

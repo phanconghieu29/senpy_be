@@ -12,7 +12,7 @@ const router = express.Router();
 router.get("/get-mentors", getMentors);
 router.post("/register", registerMentor);
 router.post("/connect", addConnection);
-router.put('/approve-mentor/:mentorId', approveMentor);
-router.delete('/reject-mentor/:mentorId', rejectMentor);
+router.put('/approve-mentor/:id', approveMentor);
+router.delete('/reject-mentor/:id', rejectMentor);
 
 module.exports = router;

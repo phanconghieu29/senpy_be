@@ -2,38 +2,15 @@ const { sql, poolPromise } = require("../config/db");
 const bcrypt = require("bcrypt");
 const { createUser } = require("../models/User");
 const { createMentor } = require("../models/Mentor");
+const { User }= require("../models/User");
 
 const getMentors = async (req, res) => {
   try {
-    const pool = await poolPromise;
-    const result = await pool.request().query(`
-      SELECT 
-        u.user_id AS id,
-        u.name,
-        u.gender,
-        u.email,
-        u.phone,
-        u.facebook_link,
-        u.status,
-        u.avatar,
-        m.id as mentorID,
-        m.expertise,
-        m.strengths,
-        m.weaknesses,
-        m.goals,
-        m.mentoring_expectations,
-        m.reason_for_mentoring
-      FROM 
-        Users u
-      INNER JOIN 
-        Mentor m ON u.user_id = m.user_id
-      WHERE 
-        u.role = 'mentor'
-    `);
-    res.json(result.recordset);
+    const mentors = await User.find({ role: "mentor" }).select("-password");
+    res.status(200).json({ mentors });
   } catch (error) {
-    console.error("Lỗi khi lấy danh sách mentor:", error);
-    res.status(500).json({ message: "Không thể lấy danh sách mentor" });
+    console.error("Lỗi khi lấy danh sách mentors:", error);
+    res.status(500).json({ message: "Lỗi máy chủ, thử lại sau!" });
   }
 };
 
@@ -187,43 +164,43 @@ const addConnection = async (req, res) => {
 };
 
 const approveMentor = async (req, res) => {
-  const mentorId = req.params.mentorId;
   try {
-    const pool = await poolPromise;
-    await pool
-      .request()
-      .input("mentorId", sql.Int, mentorId)
-      .query(`UPDATE Users SET status = N'Đã kích hoạt' WHERE user_id = @mentorId`);
+    const { id } = req.params;
+    
+    // Kiểm tra xem user có phải là mentor không
+    const mentor = await User.findOneAndUpdate(
+      { _id: id, role: "mentor" }, // Chỉ cập nhật nếu role là mentor
+      { status: "Đã kích hoạt" },
+      { new: true }
+    );
 
-    res.status(200).json({ message: "Phê duyệt mentor thành công" });
+    if (!mentor) {
+      return res.status(404).json({ message: "Mentor không tồn tại hoặc không hợp lệ!" });
+    }
+
+    res.status(200).json({ message: "Mentor approved successfully", mentor });
   } catch (error) {
-    console.error("Lỗi khi phê duyệt mentor:", error);
-    res.status(500).json({ message: "Lỗi khi phê duyệt mentor" });
+    console.error("Error approving mentor:", error);
+    res.status(500).json({ message: "Error approving mentor" });
   }
 };
 
 const rejectMentor = async (req, res) => {
-  const mentorId = req.params.mentorId;
-
   try {
-    const pool = await poolPromise;
+    const { id } = req.params;
 
-    // Delete mentor-specific data from the Mentor table
-    await pool
-      .request()
-      .input("mentorId", sql.Int, mentorId)
-      .query(`DELETE FROM Mentor WHERE user_id = @mentorId`);
+    // Kiểm tra xem user có phải là mentor không
+    const mentor = await User.findOne({ _id: id, role: "mentor" });
+    if (!mentor) {
+      return res.status(404).json({ message: "Mentor không tồn tại hoặc không hợp lệ!" });
+    }
 
-    // Delete user data from the Users table
-    await pool
-      .request()
-      .input("mentorId", sql.Int, mentorId)
-      .query(`DELETE FROM Users WHERE user_id = @mentorId`);
-
-    res.status(200).json({ message: "Đã từ chối mentor thành công." });
+    // Xóa mentor khỏi DB
+    await User.findByIdAndDelete(id);
+    res.status(200).json({ message: "Mentor rejected and data removed." });
   } catch (error) {
-    console.error("Lỗi từ chối mentor:", error);
-    res.status(500).json({ message: "Lỗi từ chối mentor." });
+    console.error("Error rejecting mentor:", error);
+    res.status(500).json({ message: "Error rejecting mentor." });
   }
 };
 
