@@ -1,172 +1,128 @@
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const LoginEvent = require("../models/User"); // LoginEvent model
-const User = require("../models/User"); // User model giả định đã có
-require("dotenv").config();
+const UserAuthEvent = require("../models/User");
 
-const SECRET_KEY = process.env.JWT_SECRET || "your-secret-key";
-
-// Đăng nhập
-const login = async (req, res) => {
-  const { usernameOrEmail, password } = req.body;
-
+// Register Event Controller
+const registerEvent = async (req, res) => {
   try {
-    // Tìm người dùng theo username hoặc email
-    const user = await User.findOne({
-      $or: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
-    });
+    const { user_id, session_id, ip_address, user_agent, event_details } =
+      req.body;
 
-    if (!user) {
-      await logFailedLogin(req, usernameOrEmail, "User not found");
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Kiểm tra mật khẩu
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      await logFailedLogin(req, usernameOrEmail, "Invalid password");
-      return res.status(401).json({ message: "Invalid password" });
-    }
-
-    // Tạo token JWT
-    const token = jwt.sign({ userId: user._id, role: user.role }, SECRET_KEY, {
-      expiresIn: "1h",
-    });
-
-    // Ghi nhận sự kiện đăng nhập thành công
-    await logSuccessfulLogin(req, user._id, usernameOrEmail);
-
-    res.status(200).json({
-      message: "Login successful",
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
+    const event = new UserAuthEvent({
+      user_id,
+      session_id,
+      ip_address,
+      user_agent,
+      event_type: "register",
+      event_details: {
+        register: event_details.register,
       },
     });
-  } catch (err) {
-    console.error("Error during login:", err);
-    res.status(500).json({ message: "Internal server error" });
+
+    await event.save();
+    return res
+      .status(201)
+      .json({ message: "Register event saved successfully", event });
+  } catch (error) {
+    console.error("Error saving register event:", error);
+    return res
+      .status(500)
+      .json({ message: "Failed to save register event", error });
   }
 };
 
-// Đăng ký
-const register = async (req, res) => {
-  const { username, email, password, role } = req.body;
-
+// Login Event Controller
+const loginEvent = async (req, res) => {
   try {
-    // Kiểm tra nếu email hoặc username đã tồn tại
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ message: "Email or username already exists" });
-    }
+    const { user_id, session_id, ip_address, user_agent, event_details } =
+      req.body;
 
-    // Mã hóa mật khẩu và tạo người dùng mới
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({
-      username,
-      email,
-      password: hashedPassword,
-      role,
+    const event = new UserAuthEvent({
+      user_id,
+      session_id,
+      ip_address,
+      user_agent,
+      event_type: "login",
+      event_details: {
+        login: event_details.login,
+      },
     });
-    await newUser.save();
 
-    // Ghi nhận sự kiện đăng ký
-    await logRegisterEvent(req, newUser);
-
-    res.status(201).json({ message: "Registration successful", user: newUser });
-  } catch (err) {
-    console.error("Error during registration:", err);
-    res.status(500).json({ message: "Internal server error" });
+    await event.save();
+    return res
+      .status(201)
+      .json({ message: "Login event saved successfully", event });
+  } catch (error) {
+    console.error("Error saving login event:", error);
+    return res
+      .status(500)
+      .json({ message: "Failed to save login event", error });
   }
 };
 
-// Đăng xuất
-const logout = async (req, res) => {
+// Logout Event Controller
+const logoutEvent = async (req, res) => {
   try {
-    const userId = req.user.userId; // Lấy userId từ middleware xác thực JWT
+    const { user_id, session_id, ip_address, user_agent } = req.body;
 
-    // Ghi nhận sự kiện đăng xuất
-    await logLogoutEvent(req, userId);
+    const event = new UserAuthEvent({
+      user_id,
+      session_id,
+      ip_address,
+      user_agent,
+      event_type: "logout",
+    });
 
-    res.status(200).json({ message: "Logout successful" });
-  } catch (err) {
-    console.error("Error during logout:", err);
-    res.status(500).json({ message: "Internal server error" });
+    await event.save();
+    return res
+      .status(201)
+      .json({ message: "Logout event saved successfully", event });
+  } catch (error) {
+    console.error("Error saving logout event:", error);
+    return res
+      .status(500)
+      .json({ message: "Failed to save logout event", error });
   }
 };
 
-// Ghi nhận sự kiện đăng nhập thành công
-const logSuccessfulLogin = async (req, userId, usernameOrEmail) => {
-  const loginEvent = new LoginEvent({
-    user_id: userId,
-    session_id: req.sessionID || generateSessionId(),
-    ip_address: req.ip,
-    user_agent: req.headers["user-agent"],
-    event_type: "login",
-    event_details: {
-      username_or_email: usernameOrEmail,
-      status: "success",
-    },
-  });
-  await loginEvent.save();
+// Password Reset Event Controller
+const passwordResetEvent = async (req, res) => {
+  try {
+    const { user_id, session_id, ip_address, user_agent } = req.body;
+
+    const event = new UserAuthEvent({
+      user_id,
+      session_id,
+      ip_address,
+      user_agent,
+      event_type: "password_reset",
+    });
+
+    await event.save();
+    return res
+      .status(201)
+      .json({ message: "Password reset event saved successfully", event });
+  } catch (error) {
+    console.error("Error saving password reset event:", error);
+    return res
+      .status(500)
+      .json({ message: "Failed to save password reset event", error });
+  }
 };
 
-// Ghi nhận sự kiện đăng nhập thất bại
-const logFailedLogin = async (req, usernameOrEmail, reason) => {
-  const loginEvent = new LoginEvent({
-    user_id: null,
-    session_id: req.sessionID || generateSessionId(),
-    ip_address: req.ip,
-    user_agent: req.headers["user-agent"],
-    event_type: "login",
-    event_details: {
-      username_or_email: usernameOrEmail,
-      status: "failed",
-      reason: reason,
-    },
-  });
-  await loginEvent.save();
-};
-
-// Ghi nhận sự kiện đăng ký
-const logRegisterEvent = async (req, user) => {
-  const loginEvent = new LoginEvent({
-    user_id: user._id,
-    session_id: req.sessionID || generateSessionId(),
-    ip_address: req.ip,
-    user_agent: req.headers["user-agent"],
-    event_type: "register",
-    event_details: {
-      role: user.role,
-    },
-  });
-  await loginEvent.save();
-};
-
-// Ghi nhận sự kiện đăng xuất
-const logLogoutEvent = async (req, userId) => {
-  const loginEvent = new LoginEvent({
-    user_id: userId,
-    session_id: req.sessionID || generateSessionId(),
-    ip_address: req.ip,
-    user_agent: req.headers["user-agent"],
-    event_type: "logout",
-  });
-  await loginEvent.save();
-};
-
-// Tạo session_id giả lập nếu không có
-const generateSessionId = () => {
-  return `sess_${Math.random().toString(36).substring(2, 15)}`;
+// Get all events (for debugging or logging purposes)
+const getAllEvents = async (req, res) => {
+  try {
+    const events = await UserAuthEvent.find();
+    return res.status(200).json(events);
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    return res.status(500).json({ message: "Failed to fetch events", error });
+  }
 };
 
 module.exports = {
-  login,
-  register,
-  logout,
+  registerEvent,
+  loginEvent,
+  logoutEvent,
+  passwordResetEvent,
+  getAllEvents,
 };

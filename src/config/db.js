@@ -23,19 +23,23 @@
 //   sql,
 //   poolPromise,
 // };
+
 const mongoose = require("mongoose");
+require("dotenv").config();
 
-const mongoUri = process.env.REACT_APP_MONGO_CONNECTION_STRING;
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_DB_URL, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 30000, // 30 giây timeout
+    });
 
-mongoose.connect(mongoUri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+    console.log("✅ MongoDB Connected!");
+  } catch (error) {
+    console.error("❌ MongoDB Connection Error:", error.message);
+    process.exit(1);
+  }
+};
 
-const db = mongoose.connection;
-db.on("error", console.error.bind(console, "MongoDB connection error:"));
-db.once("open", () => {
-  console.log("Connected to MongoDB");
-});
-
-module.exports = mongoose;
+module.exports = connectDB;
