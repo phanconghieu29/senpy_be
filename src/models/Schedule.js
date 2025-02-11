@@ -13,7 +13,11 @@ const scheduleSchema = new mongoose.Schema({
     required: true,
   },
   scheduled_time: { type: Date, required: true },
-  status: { type: String, required: true },
+  status: {
+    type: String,
+    enum: ["scheduled", "completed", "canceled"],
+    required: true,
+  },
   title: { type: String, required: true },
   location: { type: String },
   reason_for_cancel: { type: String },

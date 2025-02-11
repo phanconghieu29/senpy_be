@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "sessionId": {
+      "type": "string",
+      "description": "Mã định danh duy nhất cho phiên làm việc của người dùng."
+    },
+    "userId": {
+      "type": "string",
+      "description": "ID của người dùng nếu đã đăng nhập. Nếu là người dùng chưa đăng nhập, trường này có thể null."
+    },
+    "role": {
+      "type": "string",
+      "enum": ["admin", "user", "mentor", "mentee", "guest"],
+      "description": "Vai trò của người dùng trên hệ thống."
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Thời gian hết hạn của cookie (ISO 8601)."
+    },
+    "authToken": {
+      "type": "string",
+      "description": "Mã thông báo xác thực (JWT token hoặc access token) để xác thực phiên làm việc."
+    },
+    "userInfo": {
+      "type": "object",
+      "description": "Thông tin cơ bản của người dùng.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Tên đầy đủ của người dùng."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Email của người dùng (nếu có)."
+        },
+        "profilePicture": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL của ảnh đại diện người dùng."
+        },
+        "mentorSpecialization": {
+          "type": "string",
+          "description": "Chuyên môn của mentor (chỉ áp dụng với người dùng có vai trò mentor)."
+        }
+      }
+    },
+    "preferences": {
+      "type": "object",
+      "description": "Cài đặt và tùy chọn cá nhân của người dùng.",
+      "properties": {
+        "theme": {
+          "type": "string",
+          "enum": ["light", "dark"],
+          "description": "Chế độ giao diện của người dùng (sáng hoặc tối)."
+        },
+        "language": {
+          "type": "string",
+          "description": "Ngôn ngữ của người dùng (mã ISO 639-1, ví dụ: 'en', 'vi')."
+        }
+      }
+    },
+    "mentorData": {
+      "type": "object",
+      "description": "Dữ liệu dành riêng cho mentor.",
+      "properties": {
+        "activeSessions": {
+          "type": "integer",
+          "description": "Số lượng buổi tư vấn hiện tại của mentor."
+        },
+        "rating": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "Đánh giá trung bình của mentor."
+        }
+      }
+    },
+    "menteeData": {
+      "type": "object",
+      "description": "Dữ liệu dành riêng cho mentee.",
+      "properties": {
+        "currentMentor": {
+          "type": "string",
+          "description": "ID của mentor hiện tại mà mentee đang được tư vấn."
+        },
+        "sessionCount": {
+          "type": "integer",
+          "description": "Số lượng buổi đã tham gia của mentee."
+        }
+      }
+    },
+    "deviceInfo": {
+      "type": "object",
+      "description": "Thông tin về thiết bị của người dùng.",
+      "properties": {
+        "deviceType": {
+          "type": "string",
+          "description": "Loại thiết bị đang sử dụng (mobile, desktop, tablet)."
+        },
+        "os": {
+          "type": "string",
+          "description": "Hệ điều hành của thiết bị."
+        },
+        "browser": {
+          "type": "string",
+          "description": "Trình duyệt người dùng đang sử dụng."
+        },
+        "ipAddress": {
+          "type": "string",
+          "format": "ipv4",
+          "description": "Địa chỉ IP của người dùng."
+        }
+      }
+    }
+  },
+  "required": ["sessionId", "role", "expiresAt"],
+  "additionalProperties": false
+}

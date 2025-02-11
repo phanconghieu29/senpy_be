@@ -1,130 +1,172 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { sql, poolPromise } = require("../config/db");
+const LoginEvent = require("../models/User"); // LoginEvent model
+const User = require("../models/User"); // User model giả định đã có
+require("dotenv").config();
 
-async function loginUser(req, res) {
-  const { email, password } = req.body;
+const SECRET_KEY = process.env.JWT_SECRET || "your-secret-key";
+
+// Đăng nhập
+const login = async (req, res) => {
+  const { usernameOrEmail, password } = req.body;
 
   try {
-    const pool = await poolPromise;
-
-    const result = await pool
-      .request()
-      .input("email", sql.NVarChar, email)
-      .query("SELECT * FROM Users WHERE email = @email");
-
-    const user = result.recordset[0];
+    // Tìm người dùng theo username hoặc email
+    const user = await User.findOne({
+      $or: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
+    });
 
     if (!user) {
-      return res.status(404).json({ message: "Tài khoản không tồn tại" });
+      await logFailedLogin(req, usernameOrEmail, "User not found");
+      return res.status(404).json({ message: "User not found" });
     }
 
     // Kiểm tra mật khẩu
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) {
-      return res.status(401).json({ message: "Sai mật khẩu" });
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      await logFailedLogin(req, usernameOrEmail, "Invalid password");
+      return res.status(401).json({ message: "Invalid password" });
     }
 
-    // Kiểm tra trạng thái người dùng
-    if (user.status !== "Đã kích hoạt") {
-      return res
-        .status(403)
-        .json({ message: "Tài khoản của bạn không hoạt động" });
-    }
+    // Tạo token JWT
+    const token = jwt.sign({ userId: user._id, role: user.role }, SECRET_KEY, {
+      expiresIn: "1h",
+    });
 
-    // Lấy thêm thông tin dựa trên vai trò của người dùng
-    let additionalInfo = null;
+    // Ghi nhận sự kiện đăng nhập thành công
+    await logSuccessfulLogin(req, user._id, usernameOrEmail);
 
-    if (user.role === "mentor") {
-      // Lấy thông tin từ bảng Mentor nếu là Mentor
-      const mentorResult = await pool
-        .request()
-        .input("user_id", sql.Int, user.user_id)
-        .query("SELECT * FROM Mentor WHERE user_id = @user_id");
-
-      additionalInfo = mentorResult.recordset[0];
-    } else if (user.role === "mentee") {
-      // Lấy thông tin từ bảng Mentee nếu là Mentee
-      const menteeResult = await pool
-        .request()
-        .input("user_id", sql.Int, user.user_id)
-        .query("SELECT * FROM Mentee WHERE user_id = @user_id");
-
-      additionalInfo = menteeResult.recordset[0];
-    }
-
-    // Tạo JWT token
-    const token = jwt.sign(
-      {
-        id: user.user_id,
-        role: user.role,
-        torteeId: additionalInfo ? additionalInfo.id : null,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" } // Token có hiệu lực trong 1 giờ
-    );
-
-    // Trả về thông tin đăng nhập thành công kèm theo token và thông tin người dùng
     res.status(200).json({
-      message: "Đăng nhập thành công",
+      message: "Login successful",
       token,
       user: {
-        id: user.user_id,
+        id: user._id,
+        username: user.username,
         email: user.email,
-        name: user.name,
         role: user.role,
-        gender: user.gender,
-        phone: user.phone,
-        facebook_link: user.facebook_link,
-        avatar: user.avatar,
-        created_at: user.created_at,
-        additionalInfo, // Thông tin từ Mentor hoặc Mentee
       },
     });
-  } catch (error) {
-    console.error("Lỗi đăng nhập:", error);
-    res.status(500).json({ message: "Lỗi hệ thống" });
+  } catch (err) {
+    console.error("Error during login:", err);
+    res.status(500).json({ message: "Internal server error" });
   }
-}
+};
 
-async function changePassword(req, res) {
-  const userId = req.user.id;
-  const { currentPassword, newPassword } = req.body;
+// Đăng ký
+const register = async (req, res) => {
+  const { username, email, password, role } = req.body;
 
   try {
-    const pool = await poolPromise;
-    const result = await pool
-      .request()
-      .input("userId", sql.Int, userId)
-      .query("SELECT password FROM Users WHERE user_id = @userId");
-
-    if (result.recordset.length === 0) {
-      return res.status(404).json({ message: "Không tìm thấy người dùng." });
+    // Kiểm tra nếu email hoặc username đã tồn tại
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ message: "Email or username already exists" });
     }
 
-    const user = result.recordset[0];
+    // Mã hóa mật khẩu và tạo người dùng mới
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({
+      username,
+      email,
+      password: hashedPassword,
+      role,
+    });
+    await newUser.save();
 
-    // Kiểm tra mật khẩu hiện tại
-    const passwordMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!passwordMatch) {
-      return res.status(400).json({ message: "Mật khẩu hiện tại không đúng." });
-    }
+    // Ghi nhận sự kiện đăng ký
+    await logRegisterEvent(req, newUser);
 
-    // Hash mật khẩu mới
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // Cập nhật mật khẩu mới
-    await pool
-      .request()
-      .input("userId", sql.Int, userId)
-      .input("newPassword", sql.VarChar, hashedPassword)
-      .query("UPDATE Users SET password = @newPassword WHERE user_id = @userId");
-
-    return res.json({ message: "Đổi mật khẩu thành công!" });
-  } catch (error) {
-    console.error("Đổi mật khẩu thất bại:", error);
-    res.status(500).json({ message: "Có lỗi xảy ra. Vui lòng thử lại sau." });
+    res.status(201).json({ message: "Registration successful", user: newUser });
+  } catch (err) {
+    console.error("Error during registration:", err);
+    res.status(500).json({ message: "Internal server error" });
   }
-}
+};
 
-module.exports = { loginUser, changePassword };
+// Đăng xuất
+const logout = async (req, res) => {
+  try {
+    const userId = req.user.userId; // Lấy userId từ middleware xác thực JWT
+
+    // Ghi nhận sự kiện đăng xuất
+    await logLogoutEvent(req, userId);
+
+    res.status(200).json({ message: "Logout successful" });
+  } catch (err) {
+    console.error("Error during logout:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Ghi nhận sự kiện đăng nhập thành công
+const logSuccessfulLogin = async (req, userId, usernameOrEmail) => {
+  const loginEvent = new LoginEvent({
+    user_id: userId,
+    session_id: req.sessionID || generateSessionId(),
+    ip_address: req.ip,
+    user_agent: req.headers["user-agent"],
+    event_type: "login",
+    event_details: {
+      username_or_email: usernameOrEmail,
+      status: "success",
+    },
+  });
+  await loginEvent.save();
+};
+
+// Ghi nhận sự kiện đăng nhập thất bại
+const logFailedLogin = async (req, usernameOrEmail, reason) => {
+  const loginEvent = new LoginEvent({
+    user_id: null,
+    session_id: req.sessionID || generateSessionId(),
+    ip_address: req.ip,
+    user_agent: req.headers["user-agent"],
+    event_type: "login",
+    event_details: {
+      username_or_email: usernameOrEmail,
+      status: "failed",
+      reason: reason,
+    },
+  });
+  await loginEvent.save();
+};
+
+// Ghi nhận sự kiện đăng ký
+const logRegisterEvent = async (req, user) => {
+  const loginEvent = new LoginEvent({
+    user_id: user._id,
+    session_id: req.sessionID || generateSessionId(),
+    ip_address: req.ip,
+    user_agent: req.headers["user-agent"],
+    event_type: "register",
+    event_details: {
+      role: user.role,
+    },
+  });
+  await loginEvent.save();
+};
+
+// Ghi nhận sự kiện đăng xuất
+const logLogoutEvent = async (req, userId) => {
+  const loginEvent = new LoginEvent({
+    user_id: userId,
+    session_id: req.sessionID || generateSessionId(),
+    ip_address: req.ip,
+    user_agent: req.headers["user-agent"],
+    event_type: "logout",
+  });
+  await loginEvent.save();
+};
+
+// Tạo session_id giả lập nếu không có
+const generateSessionId = () => {
+  return `sess_${Math.random().toString(36).substring(2, 15)}`;
+};
+
+module.exports = {
+  login,
+  register,
+  logout,
+};
